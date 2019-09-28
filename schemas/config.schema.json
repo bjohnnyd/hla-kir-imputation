@@ -1,17 +1,29 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "id": "config.schema.json",
-  "name": "Schema for HLA-KIR Imputation Workflow",
-  "type": "object",
-  "properties": {
-    "KIRIMP_PANEL_URL": {
-      "$ref": "#/definitions/kirimp_panel_url",
-      "default":  "http://imp.science.unimelb.edu.au/kir/static/kirimp.uk1.snp.info.csv"
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "id": "config.schema.json",
+    "name": "Schema for HLA-KIR Imputation Workflow",
+    "type": "object",
+    "properties": {
+        "KIRIMP_PANEL_URL": {
+            "type": "string",
+            "default": "http://imp.science.unimelb.edu.au/kir/static/kirimp.uk1.snp.info.csv"
+        },
+        "project": {
+            "$ref": "#/definitions/project",
+            "description": "settings for a specific run"
+        }
+    },
+    "definitions": {
+        "project": {
+            "type": "object",
+            "patternProperties": {
+                "^[^./]+$": {
+                    "liftover": {
+                        "$ref": "#/definitions/liftover",
+                        "description": "settings relating to converting refernce hg16/hg17/hg18 --> hg19"
+                    }
+                }
+            }
+        }
     }
-  },
-  "definitions": {
-    "kirimp_panel_url": {
-      "type": "string"
-    }
-  }
 }
