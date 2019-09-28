@@ -1,0 +1,8 @@
+name: ucsc-liftover
+channels: 
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - plink=1.90b4
+  - ucsc-liftover=377

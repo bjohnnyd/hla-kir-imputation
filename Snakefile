@@ -13,9 +13,11 @@ rule all_kirimp:
     input:
     	"input/meta/kirimp/%s" % path.basename(config['KIRIMP_PANEL_URL'])
 
-rule plink_to_b37:
+rule liftover:
     input:
-    	["input/meta/liftover/%sToHg19.over.chain.gz" % config['project'][project]['liftover']['reference'].lower() for project in config['project']]
+    	["input/meta/liftover/%sToHg19.over.chain.gz" % config['project'][project]['liftover']['reference'].lower() for project in config['project']],
+        [expand("output/{project}/liftover/{reference}/{project}.{reference}.ucsc.bed", project = project, reference = config['project'][project]['liftover']['reference']) for project in config['project']]
+
 
 include: "rules/kirimp_panel.smk"
 include: "rules/liftover.smk"

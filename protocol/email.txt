@@ -1,0 +1,25 @@
+Hi Becca,
+
+This is one of the steps I contacted the authors for, specifically about providing additional information on their panel in addition to frequency (namely REF/ALT, Forward/Reverse, TOP/BOTTOM information etc). 
+
+I was not really satisfied with the frequency approach and manually modifying the VCF files but the basic idea is to align the genotypes in the VCF to their KIR*IMP panel, the 0 and 1 representation.  There is also the issue when the frequencies are close to 0.5.  I never heard back from the authors so never got to change this.  The basic idea of this rule is to set the 0/1 encoding of REF/ALT identical to KIR*IMP allele0/allele1.
+
+Converting with PLINK creates issues as plink has no real idea of "reference" and the ref/alt alleles can be changed based on frequency so depending on conversion steps (even before this data was shared with you) the ref/alt and the encoding can change  
+
+The rule essentially tries to encode the allele0 and allele1 frequency in terms of 1/0 to make sense given the frequency in "kirimp.uk1.snp.info.csv".
+
+Example would be if you had a VCF where the REF is A and ALT is C and the frequency in the population in the VCF was 0.3 (0=REF/A, 1=ALT/C).  However, in the  "kirimp.uk1.snp.info.csv" you see that allele0 is A and allele1 is C and the frequency is 0.7. From this, it would seem that they have encoded allele C as 0/REF and allele A as 1/ALT and this rule tries to change this encoding to the one that "kirimp.uk1.snp.info.csv" is based on.
+
+If Bora thinks it is not doing what it is supposed, it can be changed as I was planning to if I heard back from the authors.  I took a quick look at this AWK script and it seems it is not changing the REF and ALT columns in the VCF which it should or the pipeline should at some point so that is something that might need changing.
+
+The KIR*IMP tool should really have information identical to this:
+
+    All alleles on forward strand
+    GRCh37
+    REF allele matches GRCh37
+
+ and not frequency.  Then to match the encoding you can use bcftools fixref.
+
+Best,
+
+Johnny

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<h2 id="steps-to-convert-traherne-plink-bed-from-b36-to-vcf-file-of-build-ncbiv37hg19">Steps to convert Traherne PLINK BED from b36 to VCF file of build NCBIv37/hg19</h2>
+<h2 id="tools">TOOLS:</h2>
+<ol type="1">
+<li>plink (version 1.90b4)</li>
+<li>ucsc-liftover (version 377)</li>
+</ol>
+<h2 id="data">DATA</h2>
+<ol type="1">
+<li>Get <code>liftOver</code> chain file at:</li>
+</ol>
+<ul>
+<li><code>http://hgdownload.soe.ucsc.edu/goldenPath/hg18/liftOver/hg18ToHg19.over.chain.gz</code></li>
+</ul>
+<h2 id="steps">STEPS:</h2>
+<ol type="1">
+<li>Created <code>UCSC BED</code> file from <code>PLINK BED</code> file to be used with <code>liftOver</code>:</li>
+</ol>
+<ul>
+<li><code>plink --bfile traherne --allow-no-sex --real-ref-alleles --recode --out output/traherne</code></li>
+<li><code>awk 'BEGIN{OFS=&quot;\t&quot;} {print &quot;chr&quot;$1, $4, $4 + 1, $2, $3}' output/traherne.map &gt; output/traherne.bedfile</code></li>
+</ul>
+<ol start="2" type="1">
+<li>Perform <code>liftOver</code>:</li>
+</ol>
+<ul>
+<li><code>liftOver /output/traherne.bedfile hg18ToHg19.over.chain.gz output/liftover/traherne_hg19.bedfile output/liftover/traherne_hg18.unlifted</code></li>
+</ul>
+<ol start="3" type="1">
+<li>Create PLINK update file:</li>
+</ol>
+<ul>
+<li><code>awk '{print $4, $2}' OFS='\t' output/liftover/traherne_hg19.bedfile &gt; /output/liftover/traherne_hg19.changefile</code></li>
+</ul>
+<ol start="4" type="1">
+<li>Update PLINK files to b37:</li>
+</ol>
+<ul>
+<li><code>plink --file output/traherne --allow-no-sex --real-ref-alleles --make-bed --update-map /output/liftover/traherne_hg19.changefile --exclude output/liftover/traherne_hg18.unlifted --out output/traherne_b37</code></li>
+</ul>
+<ol start="5" type="1">
+<li>Convet PLINK file to VCF:</li>
+</ol>
+<ul>
+<li><code>plink --allow-extra-chr --allow-no-sex --real-ref-alleles --keep-allele-order --snps-only just-acgt --bfile output/traherne_b37 --recode vcf --out output/vcf/traherne_b37</code></li>
+</ul>
+<h2 id="for-kirimp">FOR KIR*IMP</h2>
+<p>The VCF file will still have a differences between the <code>KIR*IMP</code> reference and alt alleles due to differences in strand and also REF/ALT being coded opposite. The REF/ALT in the VCF file therefore need to be first synchronized by equating REF/ALT with the <code>KIR*IMP</code> panel in cases where the REF/ALT are opposite. In cases, where the KIR*IMP panel is on opposite strand the VCF file should be flipped. You can compare VCF to <a href="https://www.ncbi.nlm.nih.gov/snp/">dbSNP</a> for genome build b37 by position to convert to forward/reverse coding.</p>
+</body>
+</html>
