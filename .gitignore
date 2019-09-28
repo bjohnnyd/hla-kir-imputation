@@ -26,3 +26,5 @@ scripts/.snakemake*
 !config.schema.json
 !protocol
 !protocol/*
+!workflow
+!workflow/*

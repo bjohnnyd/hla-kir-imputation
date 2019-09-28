@@ -6,3 +6,4 @@ channels:
 dependencies:
   - plink=1.90b4
   - ucsc-liftover=377
+  - bcftools=1.9

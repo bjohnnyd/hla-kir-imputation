@@ -22,21 +22,29 @@ rule plink_to_ucsc:
     output:
         plink_map = "output/{project}/liftover/{reference}/{project}.{reference}.map",
         ucsc_bed = "output/{project}/liftover/{reference}/{project}.{reference}.ucsc.bed",
-        #plink_changefile = "output/{project}/liftover/{reference}/{project}.{reference}.changefile",
+        plink_changefile = "output/{project}/liftover/hg19/{project}.{reference}.changefile",
+        plink_changefile_unlifted = "output/{project}/liftover/hg19/{project}.{reference}.changefile.unlifted",
         hg19_unlifted = "output/{project}/liftover/hg19/{project}.{reference}ToHg19.unlifted",
-        #hg19_plink = "output/{project}/liftover/hg19/{project}.{reference}ToHg19.plink.bed",
+        hg19_plink = "output/{project}/liftover/hg19/{project}.{reference}ToHg19.plink.bed",
         hg19_ucsc_bed = "output/{project}/liftover/hg19/{project}.{reference}ToHg19.ucsc.bed",
-        #hg19_vcf = "output/{project}/liftover/hg19/{project}.{reference}ToHg19.vcf.gz",
+        hg19_vcf = "output/{project}/liftover/hg19/{project}.{reference}ToHg19.vcf.gz",
     params:
-        plink_in_basename = lambda widcards, output, input: path.splitext(input.plink)[0],
-        plink_out_basename = lambda widcards, output: path.splitext(output.plink_map)[0]
+        plink_in = lambda widcards, output, input: path.splitext(input.plink)[0],
+        plink_out = "output/{project}/liftover/{reference}/{project}.{reference}",
+        plink_lifted_out = "output/{project}/liftover/hg19/{project}.{reference}ToHg19",
     conda: "../envs/liftover.yaml"
     log: 
     	plink = "logs/liftover/{project}/{project}.{reference}.plink.err",
-	liftover =  "logs/liftover/{project}/{project}.{reference}.liftOver.err"
+        liftover =  "logs/liftover/{project}/{project}.{reference}.liftOver.err",
+        bcftools =  "logs/liftover/{project}/{project}.{reference}.bcftools.err"
     shell: 
         r"""
-        plink --bfile {params.plink_in_basename} --allow-no-sex --real-ref-alleles --recode --out {params.plink_out_basename} &> {log.plink} && 
-        awk 'BEGIN{{OFS="\t"}} {{print "chr"$1,$4,$4+1,$2,$3}}' {output.plink_map} > {output.ucsc_bed} &&
-	liftOver {output.ucsc_bed} {input.chain} {output.hg19_ucsc_bed} {output.hg19_unlifted} &> {log.liftover}
+        plink --bfile {params.plink_in} --allow-no-sex --real-ref-alleles --recode --out {params.plink_out} &> {log.plink} && 
+        awk 'BEGIN{{OFS="\t"}} {{print "chr"$1,$4-1,$4,$2,$3}}' {output.plink_map} > {output.ucsc_bed} &&
+        liftOver {output.ucsc_bed} {input.chain} {output.hg19_ucsc_bed} {output.hg19_unlifted} &> {log.liftover} &&
+        awk '{{print $2,$4}}' {output.hg19_ucsc_bed} > {output.plink_changefile} &&
+        awk '{{print $2,$4}}' {output.hg19_unlifted} > {output.plink_changefile_unlifted} &&
+        plink --file {params.plink_out} --allow-no-sex --real-ref-alleles --make-bed --update-map {output.plink_changefile} --exclude {output.plink_changefile_unlifted} --out {params.plink_lifted_out}.plink &>> {log.plink} &&
+        plink --allow-extra-chr --allow-no-sex --real-ref-alleles --keep-allele-order --snps-only just-acgt --bfile {params.plink_lifted_out}.plink --recode vcf --out {params.plink_lifted_out} &>> {log.plink} &&
+        bcftools +fill-tags {params.plink_lifted_out}.vcf -Oz -- -d  2> {log.bcftools} |   bcftools annotate -Oz --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' > {output.hg19_vcf} 2>> {log.bcftools}  && bcftools index {output.hg19_vcf} &>> {log.bcftools} 
         """
