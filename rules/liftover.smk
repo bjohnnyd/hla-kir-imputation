@@ -9,15 +9,7 @@ URL_DICT = {
     "HG16" : "https://hgdownload.soe.ucsc.edu/goldenPath/hg16/liftOver/hg16ToHg19.over.chain.gz",
 }
 
-def get_overchain_url(wildcards):
-    reference=config["project"][wildcards.project]['liftover']['reference']
-    overchain_url=config['OVERCHAIN_URLS'][reference]
-    print(HTTP.remote(overchain_url, keep_local=True))
-    HTTP.remote(overchain_url, keep_local=True)
-
-
 rule get_overchain:
-    input: get_overchain_url   
-    output: path.join("input/meta/liftover/",path.basename("over/chain.txt"))
+    input: lambda wc: HTTP.remote(URL_DICT[wc.reference.upper()], keep_local = True)
+    output: "input/meta/liftover/{reference}ToHg19.over.chain.gz"
     shell: "mv {input} {output}"
-

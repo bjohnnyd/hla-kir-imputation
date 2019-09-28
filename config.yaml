@@ -3,4 +3,8 @@
 # one row per sample. It can be parsed easily via pandas.
 
 #KIRIMP_PANEL_URL: "http://imp.science.unimelb.edu.au/kir/static/kirimp.uk1.snp.info.csv"
-EXAMPLE: ""
+TEST: ""
+project:
+  taherne:
+    liftover:
+      plink: "/home/johnny/Projects/Personal/traherne/input/traherne/traherne.bed"

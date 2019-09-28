@@ -1,0 +1,60 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "id": "config.schema.json",
+    "name": "Schema for HLA-KIR Imputation Workflow",
+    "type": "object",
+    "required": ["project"],
+    "properties": {
+        "KIRIMP_PANEL_URL": {
+            "type": "string",
+            "default": "http://imp.science.unimelb.edu.au/kir/static/kirimp.uk1.snp.info.csv"
+        },
+        "project": {
+            "$ref": "#/definitions/project",
+            "description": "settings for a specific run"
+        }
+    },
+    "definitions": {
+        "project": {
+            "type": "object",
+            "patternProperties": {
+                "^[^./]+$": {
+                    "type": "object",
+                    "id": "project_id",
+                    "additionalProperties": false,
+                    "properties": {
+                        "liftover": {
+                            "$ref": "#/definitions/liftover",
+                            "description": "settings relating to converting refernce hg16/hg17/hg18 --> hg19"
+                        }
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
+        "liftover": {
+            "type": "object",
+            "default": {
+                "reference": "HG18"
+            },
+            "properties": {
+                "reference": {
+                    "type": "string",
+                    "enum": ["HG18", "HG17", "HG16", "hg18", "hg17", "hg16"],
+                    "default": "hg18"
+                },
+                "plink": {
+                    "type": "string",
+                    "pattern": ".+(bed|fam|bim)$",
+                    "description": "path to plink bed file (must contain bim/fam in the same directory)"
+                },
+                "vcf": {
+                    "type": "string",
+                    "pattern": ".+(vcf|bcf|vcf.gz)",
+                    "description": "path to plink bed file (must contain bim/fam in the same directory)"
+                }
+            },
+            "required": ["plink"]
+        }
+    }
+}
