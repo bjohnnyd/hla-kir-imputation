@@ -1,4 +1,5 @@
 *
+!schemas
 !scripts
 !scripts/*
 !scripts/common
@@ -21,3 +22,4 @@ scripts/.snakemake*
 !.editorconfig
 !.travis.yml
 !.test
+!config.schema.json
