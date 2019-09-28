@@ -15,36 +15,67 @@ rule get_overchain:
     output: "input/meta/liftover/{reference}ToHg19.over.chain.gz"
     shell: "mv {input} {output}"
 
-rule plink_to_ucsc:
+rule generate_ucsc_bed:
     input:
         plink = lambda wc: config['project'][wc.project]['liftover']['plink'],
-        chain = "input/meta/liftover/{reference}ToHg19.over.chain.gz",
     output:
-        plink_map = "output/{project}/liftover/{reference}/{project}.{reference}.map",
-        ucsc_bed = "output/{project}/liftover/{reference}/{project}.{reference}.ucsc.bed",
-        plink_changefile = "output/{project}/liftover/hg19/{project}.{reference}.changefile",
-        plink_changefile_unlifted = "output/{project}/liftover/hg19/{project}.{reference}.changefile.unlifted",
-        hg19_unlifted = "output/{project}/liftover/hg19/{project}.{reference}ToHg19.unlifted",
-        hg19_plink = "output/{project}/liftover/hg19/{project}.{reference}ToHg19.plink.bed",
-        hg19_ucsc_bed = "output/{project}/liftover/hg19/{project}.{reference}ToHg19.ucsc.bed",
-        hg19_vcf = "output/{project}/liftover/hg19/{project}.{reference}ToHg19.vcf.gz",
+        plink = "output/{project}/liftover/01_ucsc_bed/{project}.{reference}.map",
+        bed = "output/{project}/liftover/01_ucsc_bed/{reference}/{project}.{reference}.ucsc.bed",
     params:
-        plink_in = lambda widcards, output, input: path.splitext(input.plink)[0],
-        plink_out = "output/{project}/liftover/{reference}/{project}.{reference}",
-        plink_lifted_out = "output/{project}/liftover/hg19/{project}.{reference}ToHg19",
+        basein = lambda wildcards,input: path.splitext(input.plink)[0],
+        baseout =  "output/{project}/liftover/01_ucsc_bed/{project}.{reference}"
     conda: "../envs/liftover.yaml"
-    log: 
-    	plink = "logs/liftover/{project}/{project}.{reference}.plink.err",
-        liftover =  "logs/liftover/{project}/{project}.{reference}.liftOver.err",
-        bcftools =  "logs/liftover/{project}/{project}.{reference}.bcftools.err"
+    log: "logs/liftover/{project}/{project}.{reference}.01_generate_ucsc_bed.log",
     shell: 
         r"""
-        plink --bfile {params.plink_in} --allow-no-sex --real-ref-alleles --recode --out {params.plink_out} &> {log.plink} && 
-        awk 'BEGIN{{OFS="\t"}} {{print "chr"$1,$4-1,$4,$2,$3}}' {output.plink_map} > {output.ucsc_bed} &&
-        liftOver {output.ucsc_bed} {input.chain} {output.hg19_ucsc_bed} {output.hg19_unlifted} &> {log.liftover} &&
-        awk '{{print $2,$4}}' {output.hg19_ucsc_bed} > {output.plink_changefile} &&
-        awk '{{print $2,$4}}' {output.hg19_unlifted} > {output.plink_changefile_unlifted} &&
-        plink --file {params.plink_out} --allow-no-sex --real-ref-alleles --make-bed --update-map {output.plink_changefile} --exclude {output.plink_changefile_unlifted} --out {params.plink_lifted_out}.plink &>> {log.plink} &&
-        plink --allow-extra-chr --allow-no-sex --real-ref-alleles --keep-allele-order --snps-only just-acgt --bfile {params.plink_lifted_out}.plink --recode vcf --out {params.plink_lifted_out} &>> {log.plink} &&
-        bcftools +fill-tags {params.plink_lifted_out}.vcf -Oz -- -d  2> {log.bcftools} |   bcftools annotate -Oz --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' > {output.hg19_vcf} 2>> {log.bcftools}  && bcftools index {output.hg19_vcf} &>> {log.bcftools} 
+        plink --bfile {params.basein} --allow-no-sex --real-ref-alleles --recode --out {params.baseout} &> {log}
+        awk 'BEGIN{{OFS="\t"}} {{print "chr"$1,$4-1,$4,$2,$3}}' {output.plink} > {output.bed}
+        """
+rule liftOver:
+    input: 
+    	bed = rules.generate_ucsc_bed.output.bed,
+	chain = "input/meta/liftover/{reference}ToHg19.over.chain.gz",
+    output: 
+        lifted = "output/{project}/liftover/02_liftover/{project}.{reference}ToHg19.lifted.bed",
+        unlifted = "output/{project}/liftover/02_liftover/{project}.{reference}ToHg19.unlifted.bed",
+    conda: "../envs/liftover.yaml"
+    log: "logs/liftover/{project}/{project}.{reference}.02_liftOver.log"
+    shell: "liftOver {input.bed} {input.chain} {output.lifted} {output.unlifted} &> {log}"
+
+rule create_plink_lifted:
+    input: 
+        lifted = rules.liftOver.output.lifted,
+        unlifted = rules.liftOver.output.unlifted,
+    output: 
+        lifted_changefile = temp("output/{project}/liftover/03_hg19_plink/{project}.{reference}ToHg19.lifted.bed"),
+        unlifted_changefile = temp("output/{project}/liftover/03_hg19_plink/01_liftover/{project}.{reference}ToHg19.unlifted.bed"),
+        plink = "output/{project}/liftover/03_hg19_plink/{project}.{reference}ToHg19.plink.bed",
+    params:
+        basein = "output/{project}/liftover/01_ucsc_bed/{project}.{reference}",
+        baseout =  "output/{project}/liftover/03_hg19_plink/{project}.{reference}ToHg19.plink"
+    conda: "../envs/liftover.yaml"
+    log: "logs/liftover/{project}/{project}.{reference}.03_create_plink_lifted.log",
+    shell: 
+        r"""
+        awk '{{print $2,$4}}' {input.lifted} > {output.lifted_changefile}
+        awk '{{print $2,$4}}' {input.unlifted} > {output.unlifted_changefile}
+        plink --file {params.basein} --allow-no-sex --real-ref-alleles --make-bed --update-map {output.lifted_changefile} --exclude {output.unlifted_changefile} --out {params.baseout} &> {log}
+        """
+
+rule create_vcf:
+    input: rules.create_plink_lifted.output.plink,
+    output: 
+        vcf = "output/{project}/liftover/04_hg19_vcf/{project}.{reference}ToHg19.vcf.gz",
+        stats = "output/{project}/liftover/04_hg19_vcf/{project}.{reference}ToHg19.vcf.stats",
+    conda: "../envs/liftover.yaml"
+    params:
+        basein = lambda wildcards,input: path.splitext(input[0])[0],
+        baseout =  "output/{project}/liftover/04_hg19_vcf/{project}.{reference}ToHg19",
+    log: "logs/liftover/{project}/{project}.{reference}.04_create_vcf.log",
+    shell: 
+        """
+        plink --allow-extra-chr --allow-no-sex --real-ref-alleles --keep-allele-order --snps-only just-acgt --bfile {params.basein} --recode vcf --out {params.baseout} &> {log}
+        bcftools +fill-tags {params.baseout}.vcf -- -d  2> {log} | bcftools annotate -Oz --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' > {output.vcf} 2>> {log}
+        bcftools index {output.vcf} &>> {log} 
+        bcftools stats {output.vcf} > {output.stats} 2>> {log}
         """
