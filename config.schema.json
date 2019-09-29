@@ -13,6 +13,10 @@
             "type": "integer",
             "default": 4
         },
+        "PLINK_THREADS": {
+            "type": "integer",
+            "default": 4
+        },
         "project": {
             "$ref": "#/definitions/project",
             "description": "settings for a specific run"
@@ -44,7 +48,7 @@
             "properties": {
                 "reference": {
                     "type": "string",
-                    "enum": ["HG18", "HG17", "HG16", "hg18", "hg17", "hg16"],
+                    "enum": ["HG38", "HG18", "HG17", "HG16", "hg38", "hg18", "hg17", "hg16"],
                     "default": "hg18"
                 },
                 "plink": {
