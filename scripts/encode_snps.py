@@ -26,6 +26,23 @@ CUSTOM_HEADER = [
     "freq"
 ]
 
+
+""" Class to represent genotypes in 0/1 format might not be necessary as I can flip from there"""
+
+
+class Genotype(object):
+    __slots__ = ('alleles', 'phased')
+
+    def __init__(self, li):
+        self.alleles = li[:-1]
+        self.phased = li[-1]
+
+    def __str__(self):
+        sep = "/|"[int(self.phased)]
+        return sep.join("0123."[a] for a in self.alleles)
+    __repr__ = __str__
+
+
 """
 Custom panel format needs to be: chrom,pos,a0,a1,freq
 """
@@ -36,13 +53,13 @@ def main(arguments=None):
     vcf = VCF(args['vcf_file'])
     panel = generate_panel_data(
         panel_file=args['reference_panel'], chr=args['chromosomes'], annotation=args['chromosome_annotation'], panel_type=args['reference_panel_type'])
-    for record in vcf:
-        record_id_start = str(record.CHROM) + '_' + str(record.start)
-        record_id_end = str(record.CHROM) + '_' + str(record.end)
-        if record_id_start in panel or record_id_end in panel:
-            print(record.CHROM)
-            print(record.start)
-            print(record.end)
+    for variant in vcf:
+        variant_id_start = str(variant.CHROM) + '_' + str(variant.start)
+        variant_id_end = str(variant.CHROM) + '_' + str(variant.end)
+        if variant_id_start in panel or variant_id_end in panel:
+            print(variant.INFO.get('AF'))
+            print(variant.genotypes)
+            print(variant.gt_types)
 
 
 def generate_panel_data(panel_file, chr=None, annotation='ensembl', panel_type='kirimp'):
@@ -51,11 +68,8 @@ def generate_panel_data(panel_file, chr=None, annotation='ensembl', panel_type='
     sep = get_separator(header_line)
     header_line = [cell.replace('"', '')
                    for cell in header_line.split(sep)]
-    print(header_line)
     if panel_type == 'kirimp':
         chromosome = CHROMOSOME_19_ANNOTATION[annotation]
-        print(KIRIMP_HEADER)
-        print(header_line)
         if header_line != KIRIMP_HEADER:
             raise TypeError(
                 "If input panel type is kirimp, the panel needs to contain a comma-separated header:\n%s" % ','.join(KIRIMP_HEADER))
@@ -138,7 +152,6 @@ def parse_arguments(arguments=None):
     parser.add_argument("-max", "--max-ambigious-threshold", help="Alternate alleles above this frequency and below the max ambigious frequency will be flagged as ambigious",
                         default=0.51, type=float)
     args = vars(parser.parse_args())
-    print(args)
     if args['reference_panel_type'] == 'custom' and args['reference_panel_format'] is None:
         parser.error(
             'custom --reference-panel-type requires --reference-panel-format to be set')
