@@ -9,6 +9,10 @@
             "type": "string",
             "default": "http://imp.science.unimelb.edu.au/kir/static/kirimp.uk1.snp.info.csv"
         },
+        "BCFTOOLS_THREADS": {
+            "type": "integer",
+            "default": 4
+        },
         "project": {
             "$ref": "#/definitions/project",
             "description": "settings for a specific run"
