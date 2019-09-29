@@ -12,7 +12,7 @@ CHROMOSOME_19_ANNOTATION = {
 
 KIRIMP_HEADER = [
     "id",
-    "pos",
+    "position",
     "allele0",
     "allele1",
     "allele1_frequency"
@@ -34,15 +34,15 @@ Custom panel format needs to be: chrom,pos,a0,a1,freq
 def main(arguments=None):
     args = parse_arguments()
     vcf = VCF(args['vcf_file'])
-    if args['reference_panel'] == 'kirimp':
-        panel = kirimp_parser(
-            kirimp=args['reference_panel'], chr=CHROMOSOME_19_ANNOTATION[args['chromosome_annotation']])
-    else:
-        panel = generate_panel_data(panel_file=args['reference_panel'],
-                                    chr=args['chromosomes'], annotation=args['chromosome_annotation'],
-                                    panel_type=args['reference_panel_type'], panel_format=args['reference_panel_format'])
-    print(panel)
-    print(vcf.seqnames)
+    panel = generate_panel_data(
+        panel_file=args['reference_panel'], chr=args['chromosomes'], annotation=args['chromosome_annotation'], panel_type=args['reference_panel_type'])
+    for record in vcf:
+        record_id_start = str(record.CHROM) + '_' + str(record.start)
+        record_id_end = str(record.CHROM) + '_' + str(record.end)
+        if record_id_start in panel or record_id_end in panel:
+            print(record.CHROM)
+            print(record.start)
+            print(record.end)
 
 
 def generate_panel_data(panel_file, chr=None, annotation='ensembl', panel_type='kirimp'):
@@ -51,8 +51,11 @@ def generate_panel_data(panel_file, chr=None, annotation='ensembl', panel_type='
     sep = get_separator(header_line)
     header_line = [cell.replace('"', '')
                    for cell in header_line.split(sep)]
+    print(header_line)
     if panel_type == 'kirimp':
         chromosome = CHROMOSOME_19_ANNOTATION[annotation]
+        print(KIRIMP_HEADER)
+        print(header_line)
         if header_line != KIRIMP_HEADER:
             raise TypeError(
                 "If input panel type is kirimp, the panel needs to contain a comma-separated header:\n%s" % ','.join(KIRIMP_HEADER))
@@ -61,18 +64,16 @@ def generate_panel_data(panel_file, chr=None, annotation='ensembl', panel_type='
             raise TypeError(
                 "If input panel type is custom, the panel needs to contain a comma-separated header:\n%s" % ','.join(CUSTOM_HEADER))
     snp_dict = {
-        chromosome+'_'+cell[1]: {
-            "A0": cell[2],
-            "A1": cell[3],
-            "freq": float(cell[4].strip())
+        (chromosome+'_'+cells[1] if panel_type == 'kirimp' else cells[0]+'_'+cells[1]): {
+            "A0": cells[2],
+            "A1": cells[3],
+            "freq": float(cells[4].strip())
         } if panel_type == 'kirimp'
-        else cell[0]+'_'+cell[1]: {
-            'A0': cell[2],
-            'A1': cell[3],
-            'freq': cell[4]
-        } for cell in line
-        for line in f
-    }
+        else {
+            'A0': cells[2],
+            'A1': cells[3],
+            'freq': float(cells[4])
+        } for cells in [line.strip().replace('"', '').split(sep) for line in f]}
     f.close()
     return(snp_dict)
 
@@ -87,24 +88,25 @@ def get_separator(line):
     else:
         raise TypeError(
             'Cannot determine separator from file please specify separator directly as an argument [--reference-panel-col-separator]')
+    return(sep)
 
 
-def kirimp_parser(kirimp, chr, type):
-    snp_dict = {}
-    with open(kirimp) as f:
-        header = [cell.replace(''"','') for cell in next(f).strip().split(', ')]
-        print(header)
-        if header != KIRIMP_HEADER:
-            raise TypeError(
-                "If input panel type is kirimp, the panel needs to contain a comma-separated header:\n%s" % ','.join(KIRIMP_HEADER))
-        for line in f:
-            snp = line.split(',')
-            snp_dict[chr+'_'+snp[1]] = {
-                "A1": snp[2],
-                "A2": snp[3],
-                "freq": float(snp[4].strip())
-            }
-    return(snp_dict)
+# def kirimp_parser(kirimp, chr, type):
+#     snp_dict = {}
+#     with open(kirimp) as f:
+#         header = [cell.replace(''"','') for cell in next(f).strip().split(', ')]
+#         print(header)
+#         if header != KIRIMP_HEADER:
+#             raise TypeError(
+#                 "If input panel type is kirimp, the panel needs to contain a comma-separated header:\n%s" % ','.join(KIRIMP_HEADER))
+#         for line in f:
+#             snp = line.split(',')
+#             snp_dict[chr+'_'+snp[1]] = {
+#                 "A1": snp[2],
+#                 "A2": snp[3],
+#                 "freq": float(snp[4].strip())
+#             }
+#     return(snp_dict)
 
 
 def parse_arguments(arguments=None):
