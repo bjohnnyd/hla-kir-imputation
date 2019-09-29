@@ -4,10 +4,43 @@ from os import path
 from cyvcf2 import VCF, Writer
 
 
+CHROMOSOME_19_ANNOTATION = {
+    'ucsc': 'chr19',
+    'ensembl': '19',
+    'genbank': 'CM000681.2'
+}
+
+
 def main(arguments=None):
     args = parse_arguments()
-    vcf = VCF(args['vcf-file'])
+    vcf = VCF(args['vcf_file'])
+    panel = generate_panel_data(panel_file=args['reference_panel'],
+                                chr=args['chromosomes'], annotation=args['chromosome_annotation'],
+                                panel_type=args['reference_panel_type'], panel_format=args['reference_panel_format'])
+    print(panel)
     print(vcf.seqnames)
+
+
+def generate_panel_data(panel_file, chr=None, annotation='ensembl', panel_type='kirimp', panel_format='id,pos,allele0,allele1,allele1_frequency'):
+    if panel_type == 'kirimp':
+        snp_dict = kirimp_parser(
+            kirimp=panel_file, chr=CHROMOSOME_19_ANNOTATION[annotation])
+        return(snp_dict)
+    if panel_type == 'custom':
+
+
+def kirimp_parser(kirimp, chr):
+    snp_dict = {}
+    with open(kirimp) as f:
+        next(f)
+        for line in f:
+            snp = line.split(',')
+            snp_dict[chr+'_'+snp[1]] = {
+                "A1": snp[2],
+                "A2": snp[3],
+                "freq": float(snp[4].strip())
+            }
+    return(snp_dict)
 
 
 def parse_arguments(arguments=None):
@@ -28,6 +61,8 @@ def parse_arguments(arguments=None):
         "-O", "--output-type", help="Output vcf file type", choices=["z", "v", "b"], type=str, default='z')
     parser.add_argument(
         "-chr", "--chromosomes", help="Chromosome over which to encode SNPs ", required=False, nargs='?', type=str)
+    parser.add_argument(
+        "--chromosome-annotation", help="Chromosome annotation type in the VCF", choices=['ucsc', 'ensembl', 'genbank'], default='ensembl', type=str)
     parser.add_argument("-a", "--ambigious",
                         help="Determines whether ambigious alternate alleles should be dropped", action='store_false')
     parser.add_argument("-c", "--fix-complement-ref-alt",
@@ -37,10 +72,12 @@ def parse_arguments(arguments=None):
     parser.add_argument("-max", "--max-ambigious-threshold", help="Alternate alleles above this frequency and below the max ambigious frequency will be flagged as ambigious",
                         default=0.51, type=float)
     args = vars(parser.parse_args())
-    if args['reference-panel-type'] == 'custom' and args['reference-panel-format'] is None:
+    print(args)
+    if args['reference_panel_type'] == 'custom' and args['reference_panel_format'] is None:
         parser.error(
             'custom --reference-panel-type requires --reference-panel-format to be set')
     return(args)
+
 
 if __name__ == '__main__':
     main()
