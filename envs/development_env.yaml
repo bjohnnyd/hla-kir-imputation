@@ -1,0 +1,8 @@
+name: encode_snps
+channels: 
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - cyvcf2=0.11.5
+  - bcftools=1.9
