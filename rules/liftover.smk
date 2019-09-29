@@ -34,7 +34,7 @@ rule liftOver:
     	bed = rules.generate_ucsc_bed.output.bed,
 	chain = "input/meta/liftover/{reference}ToHg19.over.chain.gz",
     output: 
-        lifted = "output/{project}/liftover/02_liftover/{project}.{reference}ToHg19.lifted.bed",
+        lifted = "output/{project}/liftover/02_liftover/{project}.{reference}ToHg19.ucsc.bed",
         unlifted = "output/{project}/liftover/02_liftover/{project}.{reference}ToHg19.unlifted.bed",
     conda: "../envs/liftover.yaml"
     log: "logs/liftover/{project}/{project}.{reference}.02_liftOver.log"
@@ -45,7 +45,7 @@ rule create_plink_lifted:
         lifted = rules.liftOver.output.lifted,
         unlifted = rules.liftOver.output.unlifted
     output: 
-        lifted_changefile = temp("output/{project}/liftover/03_hg19_plink/{project}.{reference}ToHg19.lifted.bed"),
+        lifted_changefile = temp("output/{project}/liftover/03_hg19_plink/{project}.{reference}ToHg19.lifted.list"),
 	skip_snps = "output/{project}/liftover/03_hg19_plink/{project}.{reference}.skip_snps.list",
         plink = "output/{project}/liftover/03_hg19_plink/{project}.{reference}ToHg19.plink.bed"
     params:
@@ -55,7 +55,7 @@ rule create_plink_lifted:
     log: "logs/liftover/{project}/{project}.{reference}.03_create_plink_lifted.log"
     shell: 
         r"""
-        awk '{{print $3,$4}}' {input.lifted} > {output.lifted_changefile}
+        awk '{{print $4,$3}}' {input.lifted} > {output.lifted_changefile}
         awk '{{print $4}}' {input.unlifted} > {output.skip_snps}
         plink --file {params.basein} --allow-no-sex --real-ref-alleles --make-bed --update-map {output.lifted_changefile} --exclude {output.skip_snps} --out {params.baseout} &> {log}
         """
