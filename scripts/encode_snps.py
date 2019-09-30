@@ -11,6 +11,7 @@ KIRIMP_HEADER = ["id", "position", "allele0", "allele1", "allele1_frequency"]
 
 CUSTOM_HEADER = ["chrom", "pos", "a0", "a1", "freq"]
 
+COMPLEMENT = {"A": "T", "T": "A", "G": "C", "C": "G"}
 
 """ Class to represent genotypes in 0/1 format might not be necessary as I can flip from there"""
 
@@ -55,36 +56,56 @@ def main(arguments=None):
         variant_id_end = str(variant.CHROM) + "_" + str(variant.end)
         if variant_id_end in panel:
             panel_variant = panel[variant_id_end]
-            frequency_synced = (panel_variant["freq"] > 0.5 and variant.aaf > 0.5) or (
-                panel_variant["freq"] < 0.5 and variant.aaf < 0.5
-            )
-            nucleotides_synced = (panel_variant["A0"] == variant.REF) and (
-                panel_variant["A1"] == variant.ALT
-            )
-            if not frequency_synced and not nucleotides_synced:
-                gts = variant.genotypes
-                gts = [Genotype(li) for li in gts]
-                print("-" * 50)
-                print("Variant frequency: %f" % variant.aaf)
-                print("Variant REF/ALT: %s/%s" % (variant.REF, variant.ALT))
-                print("Panel frequency: %f" % panel_variant["freq"])
-                for gt in gts:
-                    gt.flip()
-                variant.genotypes = [gt.genotype() for gt in gts]
-                print("****UPDATED GENOTYPES***")
-                updated_frequency = sum([gt.alleles.count(1) for gt in gts]) / (
-                    2 * len([gt for gt in gts if -1 not in gt.alleles])
-                )
-                variant.INFO["AF"] = updated_frequency
-                temp_nuc = variant.REF
-                variant.REF = variant.ALT[0]
-                variant.ALT = [temp_nuc]
-                print("Updated variant frequency: %f" % variant.INFO.get("AF"))
-                print("Updated variant REF/ALT: %s/%s" % (variant.REF, variant.ALT))
-                print("-" * 50)
-                w.write_record(variant)
+            if (
+                variant.aaf > args["min_ambigious_threshold"]
+                and variant.aaf < args["min_ambigious_threshold"]
+                and args["ambigious"]
+            ):
+                continue
+            if should_recode(variant, panel_variant):
+                swap_ref_alt(variant)
+            if should_flipstrand(variant, panel_variant):
+                flipstrand(variant)
+        w.write_record(variant)
     w.close()
     vcf.close()
+
+
+def swap_ref_alt(variant):
+    gts = variant.genotypes
+    gts = [Genotype(li) for li in gts]
+    for gt in gts:
+        gt.flip()
+    variant.genotypes = [gt.genotype() for gt in gts]
+    updated_frequency = sum([gt.alleles.count(1) for gt in gts]) / (
+        2 * len([gt for gt in gts if -1 not in gt.alleles])
+    )
+    temp_nuc = variant.REF
+    variant.REF = variant.ALT[0]
+    variant.ALT = [temp_nuc]
+    variant.INFO["AF"] = updated_frequency
+
+
+def flipstrand(variant, COMPLEMENT=COMPLEMENT):
+    variant.REF = COMPLEMENT[variant.REF]
+    variant.ALT = COMPLEMENT[variant.ALT]
+    swap_ref_alt(variant)
+
+
+def should_recode(variant, panel_variant):
+    panel_nucleotides = [panel_variant["A0"], panel_variant["A1"]]
+    variant_nucleotides = variant.ALT[:].extend(variant.REF)
+    frequency_synced = (
+        panel_variant["freq"] > 0.5 and variant.INFO.get("AF") > 0.5
+    ) or (panel_variant["freq"] < 0.5 and variant.INFO.get("AF") < 0.5)
+    nucleotides_synced = all(panel_nucleotides in variant_nucleotides)
+    return not (frequency_synced and nucleotides_synced)
+
+
+def should_flipstrand(variant, panel_variant, COMPLEMENT=COMPLEMENT):
+    unsynced = should_recode(variant, panel_variant)
+    is_alt_complement = COMPLEMENT[variant.REF] == variant.ALT
+    return unsynced and COMPLEMENT
 
 
 def generate_panel_data(
@@ -121,10 +142,12 @@ def generate_panel_data(
     return snp_dict
 
 
-def get_separator(line):
+def get_separator(line, passed_separator=None):
     tabs = line.count(r"\t")
     commas = line.count(r",")
-    if tabs == 4 and commas != 4:
+    if passed_separator:
+        sep = passed_separator
+    elif tabs == 4 and commas != 4:
         sep = r"\t"
     elif tabs != 4 and commas == 4:
         sep = ","
@@ -166,6 +189,12 @@ def parse_arguments(arguments=None):
         "-rf",
         "--reference-panel-format",
         help="Custom reference panel format type",
+        type=str,
+    )
+    parser.add_argument(
+        "-rf",
+        "--reference-panel-sep",
+        help="Custom reference panel column separator",
         type=str,
     )
     parser.add_argument(
