@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 from os import path
+import numpy as np
 from cyvcf2 import VCF, Writer
 
 
@@ -16,6 +17,7 @@ CUSTOM_HEADER = ["chrom", "pos", "a0", "a1", "freq"]
 
 class Genotype(object):
     __slots__ = ("alleles", "phased")
+    FLIP_DICT = {0: 1, 1: 0, -1: -1}
 
     def __init__(self, li):
         self.alleles = li[:-1]
@@ -24,6 +26,12 @@ class Genotype(object):
     def __str__(self):
         sep = "/|"[int(self.phased)]
         return sep.join("0123."[a] for a in self.alleles)
+
+    def flip(self):
+        self.alleles = [Genotype.FLIP_DICT[allele] for allele in self.alleles]
+
+    def genotype(self):
+        return self.alleles + [self.phased]
 
     __repr__ = __str__
 
@@ -36,6 +44,7 @@ Custom panel format needs to be: chrom,pos,a0,a1,freq
 def main(arguments=None):
     args = parse_arguments()
     vcf = VCF(args["vcf_file"])
+    w = Writer(args["output"], vcf)
     panel = generate_panel_data(
         panel_file=args["reference_panel"],
         chr=args["chromosomes"],
@@ -46,9 +55,29 @@ def main(arguments=None):
         variant_id_start = str(variant.CHROM) + "_" + str(variant.start)
         variant_id_end = str(variant.CHROM) + "_" + str(variant.end)
         if variant_id_start in panel or variant_id_end in panel:
+            gts = variant.genotypes
+            gts = [Genotype(li) for li in gts]
+            print("****ORIGINAL FREQUENCY***")
+            print(variant.aaf)
+            print(
+                sum([gt.alleles.count(1) for gt in gts])
+                / (2 * len([gt for gt in gts if -1 not in gt.alleles]))
+            )
+            for gt in gts:
+                gt.flip()
+            variant.genotypes = [gt.genotype() for gt in gts]
+            print("****UPDATED GENOTYPES***")
             print(variant.INFO.get("AF"))
-            print(variant.genotypes)
-            print(variant.gt_types)
+            updated_frequency = sum([gt.alleles.count(1) for gt in gts]) / (
+                2 * len([gt for gt in gts if -1 not in gt.alleles])
+            )
+            print(updated_frequency)
+            print("****UPDATED FREQUENCY***")
+            variant.INFO["AF"] = updated_frequency
+            print(variant.INFO.get("AF"))
+            w.write_record(variant)
+    w.close()
+    vcf.close()
 
 
 def generate_panel_data(
