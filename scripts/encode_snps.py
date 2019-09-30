@@ -11,7 +11,7 @@ KIRIMP_HEADER = ["id", "position", "allele0", "allele1", "allele1_frequency"]
 
 CUSTOM_HEADER = ["chrom", "pos", "a0", "a1", "freq"]
 
-COMPLEMENT = {"A": "T", "T": "A", "G": "C", "C": "G"}
+COMPLEMENT = {"A": "T", "T": "A", "G": "C", "C": "G", ".": "."}
 
 """ Class to represent genotypes in 0/1 format might not be necessary as I can flip from there"""
 
@@ -51,20 +51,31 @@ def main(arguments=None):
         chr=args["chromosomes"],
         annotation=args["chromosome_annotation"],
         panel_type=args["reference_panel_type"],
+        separator=args["separator"],
     )
     for variant in vcf:
         variant_id_end = str(variant.CHROM) + "_" + str(variant.end)
         if variant_id_end in panel:
             panel_variant = panel[variant_id_end]
+            if not variant.ALT:
+                print("-" * 100)
+                print("No alternate called or missing  due to multisampel vcf")
+                print(variant.ID)
+                print(variant.REF)
+                print(variant.ALT)
+                continue
             if (
-                variant.aaf > args["min_ambigious_threshold"]
-                and variant.aaf < args["min_ambigious_threshold"]
-                and args["ambigious"]
+                args["ambigious"]
+                and variant.aaf > args["min_ambigious_threshold"]
+                and variant.aaf < args["max_ambigious_threshold"]
             ):
                 continue
             if should_recode(variant, panel_variant):
                 swap_ref_alt(variant)
-            if should_flipstrand(variant, panel_variant):
+            if (
+                should_flipstrand(variant, panel_variant)
+                and args["fix_complement_ref_alt"]
+            ):
                 flipstrand(variant)
         w.write_record(variant)
     w.close()
@@ -94,26 +105,27 @@ def flipstrand(variant, COMPLEMENT=COMPLEMENT):
 
 def should_recode(variant, panel_variant):
     panel_nucleotides = [panel_variant["A0"], panel_variant["A1"]]
-    variant_nucleotides = variant.ALT[:].extend(variant.REF)
+    variant_nucleotides = variant.ALT[:]
+    variant_nucleotides.extend(variant.REF)
     frequency_synced = (
         panel_variant["freq"] > 0.5 and variant.INFO.get("AF") > 0.5
     ) or (panel_variant["freq"] < 0.5 and variant.INFO.get("AF") < 0.5)
-    nucleotides_synced = all(panel_nucleotides in variant_nucleotides)
+    nucleotides_synced = all(nuc in variant_nucleotides for nuc in panel_nucleotides)
     return not (frequency_synced and nucleotides_synced)
 
 
 def should_flipstrand(variant, panel_variant, COMPLEMENT=COMPLEMENT):
     unsynced = should_recode(variant, panel_variant)
     is_alt_complement = COMPLEMENT[variant.REF] == variant.ALT
-    return unsynced and COMPLEMENT
+    return unsynced and is_alt_complement
 
 
 def generate_panel_data(
-    panel_file, chr=None, annotation="ensembl", panel_type="kirimp"
+    panel_file, chr=None, annotation="ensembl", panel_type="kirimp", separator=None
 ):
     f = open(panel_file, "r")
     header_line = next(f).strip()
-    sep = get_separator(header_line)
+    sep = get_separator(header_line, separator)
     header_line = [cell.replace('"', "") for cell in header_line.split(sep)]
     if panel_type == "kirimp":
         chromosome = CHROMOSOME_19_ANNOTATION[annotation]
@@ -163,21 +175,24 @@ def parse_arguments(arguments=None):
         description="This script encodes SNPs in a VCF to a reference panel based on allele frequencies",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
+    parser._action_groups.pop()
+    required = parser.add_argument_group("required arguments")
+    optional = parser.add_argument_group("optional arguments")
+    required.add_argument(
         "-v",
         "--vcf-file",
         help="VCF/BCF file to re-encode (can be compressed with bgzip)",
         required=True,
         type=str,
     )
-    parser.add_argument(
+    required.add_argument(
         "-r",
         "--reference-panel",
-        help="Reference panel file  containing data in the format [chrom pos freq] or [pos freq] if only one chromosome in input VCF",
+        help="Reference panel file  either in format of KIR*IMP reference panel  or a custom data format [chrom pos ref alt freq]",
         required=True,
         type=str,
     )
-    parser.add_argument(
+    optional.add_argument(
         "-rt",
         "--reference-panel-type",
         help="Reference panel file type",
@@ -185,35 +200,13 @@ def parse_arguments(arguments=None):
         default="kirimp",
         type=str,
     )
-    parser.add_argument(
-        "-rf",
-        "--reference-panel-format",
-        help="Custom reference panel format type",
-        type=str,
+    optional.add_argument(
+        "--separator", help="Custom reference panel column separator", type=str
     )
-    parser.add_argument(
-        "-rf",
-        "--reference-panel-sep",
-        help="Custom reference panel column separator",
-        type=str,
+    optional.add_argument(
+        "-o", "--output", help="Output vcf file", required=False, type=str
     )
-    parser.add_argument(
-        "-o",
-        "--output",
-        help="Output vcf file",
-        required=False,
-        default="stdout",
-        type=str,
-    )
-    parser.add_argument(
-        "-O",
-        "--output-type",
-        help="Output vcf file type",
-        choices=["z", "v", "b"],
-        type=str,
-        default="z",
-    )
-    parser.add_argument(
+    optional.add_argument(
         "-chr",
         "--chromosomes",
         help="Chromosome over which to encode SNPs ",
@@ -221,37 +214,37 @@ def parse_arguments(arguments=None):
         nargs="?",
         type=str,
     )
-    parser.add_argument(
+    optional.add_argument(
         "--chromosome-annotation",
         help="Chromosome annotation type in the VCF",
         choices=["ucsc", "ensembl", "genbank"],
         default="ensembl",
         type=str,
     )
-    parser.add_argument(
+    optional.add_argument(
         "-a",
         "--ambigious",
         help="Determines whether ambigious alternate alleles should be dropped",
         action="store_false",
     )
-    parser.add_argument(
+    optional.add_argument(
         "-c",
         "--fix-complement-ref-alt",
         help="Should ref/alt that are complements be fixed with respect to frequency",
         action="store_false",
     )
-    parser.add_argument(
+    optional.add_argument(
         "-min",
         "--min-ambigious-threshold",
         help="Alternate alleles above this frequency and below the max ambigious frequency will be flagged as ambigious",
-        default=0.49,
+        default=0.495,
         type=float,
     )
-    parser.add_argument(
+    optional.add_argument(
         "-max",
         "--max-ambigious-threshold",
         help="Alternate alleles above this frequency and below the max ambigious frequency will be flagged as ambigious",
-        default=0.51,
+        default=0.505,
         type=float,
     )
     args = vars(parser.parse_args())

@@ -3,6 +3,12 @@
 [![Snakemake](https://img.shields.io/badge/snakemake-≥5.4.0-brightgreen.svg)](https://snakemake.bitbucket.io)
 [![Build Status](https://travis-ci.org/snakemake-workflows/hla-kir-imp.svg?branch=master)](https://travis-ci.org/snakemake-workflows/hla-kir-imp)
 
+
+TODO:
+
+- possible genetic map locations:
+  - `ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/working/20110106_recombination_hotspots/`
+  - `https://github.com/joepickrell/1000-genomes-genetic-maps/blob/master/interpolated_OMNI/chr19.OMNI.interpolated_genetic_map.gz`
 This is the template for a new Snakemake workflow. Replace this text with a comprehensive description covering the purpose and domain.
 Insert your code into the respective folders, i.e. `scripts`, `rules`, and `envs`. Define the entry point of the workflow in the `Snakefile` and the main configuration in the `config.yaml` file.
 
