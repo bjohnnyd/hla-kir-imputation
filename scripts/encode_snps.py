@@ -52,30 +52,37 @@ def main(arguments=None):
         panel_type=args["reference_panel_type"],
     )
     for variant in vcf:
-        variant_id_start = str(variant.CHROM) + "_" + str(variant.start)
         variant_id_end = str(variant.CHROM) + "_" + str(variant.end)
-        if variant_id_start in panel or variant_id_end in panel:
-            gts = variant.genotypes
-            gts = [Genotype(li) for li in gts]
-            print("****ORIGINAL FREQUENCY***")
-            print(variant.aaf)
-            print(
-                sum([gt.alleles.count(1) for gt in gts])
-                / (2 * len([gt for gt in gts if -1 not in gt.alleles]))
+        if variant_id_end in panel:
+            panel_variant = panel[variant_id_end]
+            frequency_synced = (panel_variant["freq"] > 0.5 and variant.aaf > 0.5) or (
+                panel_variant["freq"] < 0.5 and variant.aaf < 0.5
             )
-            for gt in gts:
-                gt.flip()
-            variant.genotypes = [gt.genotype() for gt in gts]
-            print("****UPDATED GENOTYPES***")
-            print(variant.INFO.get("AF"))
-            updated_frequency = sum([gt.alleles.count(1) for gt in gts]) / (
-                2 * len([gt for gt in gts if -1 not in gt.alleles])
+            nucleotides_synced = (panel_variant["A0"] == variant.REF) and (
+                panel_variant["A1"] == variant.ALT
             )
-            print(updated_frequency)
-            print("****UPDATED FREQUENCY***")
-            variant.INFO["AF"] = updated_frequency
-            print(variant.INFO.get("AF"))
-            w.write_record(variant)
+            if not frequency_synced and not nucleotides_synced:
+                gts = variant.genotypes
+                gts = [Genotype(li) for li in gts]
+                print("-" * 50)
+                print("Variant frequency: %f" % variant.aaf)
+                print("Variant REF/ALT: %s/%s" % (variant.REF, variant.ALT))
+                print("Panel frequency: %f" % panel_variant["freq"])
+                for gt in gts:
+                    gt.flip()
+                variant.genotypes = [gt.genotype() for gt in gts]
+                print("****UPDATED GENOTYPES***")
+                updated_frequency = sum([gt.alleles.count(1) for gt in gts]) / (
+                    2 * len([gt for gt in gts if -1 not in gt.alleles])
+                )
+                variant.INFO["AF"] = updated_frequency
+                temp_nuc = variant.REF
+                variant.REF = variant.ALT[0]
+                variant.ALT = [temp_nuc]
+                print("Updated variant frequency: %f" % variant.INFO.get("AF"))
+                print("Updated variant REF/ALT: %s/%s" % (variant.REF, variant.ALT))
+                print("-" * 50)
+                w.write_record(variant)
     w.close()
     vcf.close()
 
