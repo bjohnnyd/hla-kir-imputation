@@ -2,6 +2,7 @@
 import argparse
 from os import path
 import numpy as np
+import matplotlib.pyplot as plt
 from cyvcf2 import VCF, Writer
 
 
@@ -53,6 +54,17 @@ def main(arguments=None):
         panel_type=args["reference_panel_type"],
         separator=args["separator"],
     )
+
+    variant_ids = []
+    original_frequencies = []
+    updated_frequencies = []
+    panel_frequencies = []
+
+    ambi_count = 0
+    erroneous_count = 0
+    encoded = 0
+    strand_flipped = 0
+
     for variant in vcf:
         variant_id_end = str(variant.CHROM) + "_" + str(variant.end)
         if variant_id_end in panel:
@@ -63,23 +75,46 @@ def main(arguments=None):
                 print(variant.ID)
                 print(variant.REF)
                 print(variant.ALT)
+                erroneous_count += 1
                 continue
             if (
                 args["ambigious"]
                 and variant.aaf > args["min_ambigious_threshold"]
                 and variant.aaf < args["max_ambigious_threshold"]
             ):
+                ambi_count += 1
                 continue
             if should_recode(variant, panel_variant):
                 swap_ref_alt(variant)
+                encoded += 1
             if (
                 should_flipstrand(variant, panel_variant)
                 and args["fix_complement_ref_alt"]
             ):
                 flipstrand(variant)
+                strand_flipped += 1
+            variant_ids.append(variant_id_end)
+            original_frequencies.append(variant.aaf)
+            updated_frequencies.append(variant.INFO.get("AF"))
+            panel_frequencies.append(panel_variant["freq"])
         w.write_record(variant)
     w.close()
     vcf.close()
+    create_summary_plot(
+        ids=variant_ids,
+        original_freqs=original_frequencies,
+        updated_freqs=updated_frequencies,
+        panel_freqs=panel_frequencies,
+        ambi=ambi_count,
+        err=erroneous_count,
+        re_encoded=encoded,
+        strand_flip=strand_flipped,
+        outfile=args["output"]
+        .replace(".vcf", "")
+        .replace(".bcf", "")
+        .replace(".gz", "")
+        + ".png",
+    )
 
 
 def swap_ref_alt(variant):
@@ -118,6 +153,48 @@ def should_flipstrand(variant, panel_variant, COMPLEMENT=COMPLEMENT):
     unsynced = should_recode(variant, panel_variant)
     is_alt_complement = COMPLEMENT[variant.REF] == variant.ALT
     return unsynced and is_alt_complement
+
+
+def create_summary_plot(
+    ids,
+    original_freqs,
+    updated_freqs,
+    panel_freqs,
+    ambi,
+    err,
+    re_encoded,
+    strand_flip,
+    outfile,
+):
+    fig, axes = plt.subplots(nrows=2, ncols=1)
+    # fig.suptitle("Alternate Frequencies Between Panel and VCF file", fontsize=16)
+
+    orig_coef = np.corrcoef(original_freqs, panel_freqs)[1, 0]
+    updated_coef = np.corrcoef(updated_freqs, panel_freqs)[1, 0]
+
+    axes[0].set_title("Original VCF Frequencies Compared to Panel Frequencies")
+    axes[0].scatter(original_freqs, panel_freqs, s=10, alpha=0.7)
+    axes[0].annotate(
+        "%.2f" % orig_coef,
+        (max(original_freqs), max(panel_freqs)),
+        xytext=(0, -0.2),
+        ha="center",
+    )
+    axes[1].set_title("Updated VCF Frequencies Compared to Panel Frequencies")
+    axes[1].scatter(updated_freqs, panel_freqs, s=10, alpha=0.7)
+    axes[1].annotate(
+        "%.2f" % updated_coef,
+        (max(updated_freqs), max(panel_freqs)),
+        xytext=(0, -0.2),
+        ha="center",
+    )
+
+    for ax in axes:
+        ax.set_xlabel("Panel Allele Frequency", fontsize=10)
+        ax.set_ylabel("VCF Alternate Frequency", fontsize=10)
+        ax.plot(ax.get_xlim(), ax.get_ylim(), ls="--", c=".3")
+    plt.tight_layout()
+    plt.savefig(outfile, bbox_inches="tight", pad_inches=0)
 
 
 def generate_panel_data(
