@@ -3,17 +3,17 @@ import argparse
 from os import path
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from cyvcf2 import VCF, Writer
 
+plt.rcParams["figure.figsize"] = (12, 8)
 
 CHROMOSOME_19_ANNOTATION = {"ucsc": "chr19", "ensembl": "19", "genbank": "CM000681.2"}
 
 KIRIMP_HEADER = ["id", "position", "allele0", "allele1", "allele1_frequency"]
 
 CUSTOM_HEADER = ["chrom", "pos", "a0", "a1", "freq"]
-
 COMPLEMENT = {"A": "T", "T": "A", "G": "C", "C": "G", ".": "."}
-
 """ Class to represent genotypes in 0/1 format might not be necessary as I can flip from there"""
 
 
@@ -91,6 +91,7 @@ def main(arguments=None):
                 should_flipstrand(variant, panel_variant)
                 and args["fix_complement_ref_alt"]
             ):
+                print("Flipping Strand")
                 flipstrand(variant)
                 strand_flipped += 1
             variant_ids.append(variant_id_end)
@@ -166,35 +167,50 @@ def create_summary_plot(
     strand_flip,
     outfile,
 ):
-    fig, axes = plt.subplots(nrows=2, ncols=1)
-    # fig.suptitle("Alternate Frequencies Between Panel and VCF file", fontsize=16)
+    gs = gridspec.GridSpec(2, 4)
+    gs.update(wspace=0.5)
+    ax1 = plt.subplot(gs[0, :2])
+    ax2 = plt.subplot(gs[0, 2:])
+    ax3 = plt.subplot(gs[1, 1:3])
 
     orig_coef = np.corrcoef(original_freqs, panel_freqs)[1, 0]
     updated_coef = np.corrcoef(updated_freqs, panel_freqs)[1, 0]
 
-    axes[0].set_title("Original VCF Frequencies Compared to Panel Frequencies")
-    axes[0].scatter(original_freqs, panel_freqs, s=10, alpha=0.7)
-    axes[0].annotate(
-        "%.2f" % orig_coef,
-        (max(original_freqs), max(panel_freqs)),
-        xytext=(0, -0.2),
+    ax1.set_title("Original VCF Frequencies Compared to Panel Frequencies", fontsize=10)
+    ax1.scatter(original_freqs, panel_freqs, s=10, alpha=0.7)
+    ax1.annotate(
+        "corr = %.2f" % orig_coef,
+        (max(original_freqs), max(panel_freqs) - 0.2),
         ha="center",
     )
-    axes[1].set_title("Updated VCF Frequencies Compared to Panel Frequencies")
-    axes[1].scatter(updated_freqs, panel_freqs, s=10, alpha=0.7)
-    axes[1].annotate(
-        "%.2f" % updated_coef,
-        (max(updated_freqs), max(panel_freqs)),
-        xytext=(0, -0.2),
+    ax2.set_title("Updated VCF Frequencies Compared to Panel Frequencies", fontsize=10)
+    ax2.scatter(updated_freqs, panel_freqs, s=10, alpha=0.7)
+    ax2.annotate(
+        "corr = %.2f" % updated_coef,
+        (max(updated_freqs), max(panel_freqs) - 0.2),
         ha="center",
     )
 
-    for ax in axes:
-        ax.set_xlabel("Panel Allele Frequency", fontsize=10)
-        ax.set_ylabel("VCF Alternate Frequency", fontsize=10)
+    for ax in (ax1, ax2):
+        ax.set_xlabel("Panel Allele Frequency", fontsize=8)
+        ax.set_ylabel("VCF Alternate Frequency", fontsize=8)
         ax.plot(ax.get_xlim(), ax.get_ylim(), ls="--", c=".3")
+
+    v_types = [
+        "REF --> ALT",
+        "Strand Flipped",
+        "Ambigious Variants",
+        "Uncompatible Genotype (. in GT field)",
+    ]
+    counts = [re_encoded, strand_flip, ambi, err]
+    ax3.bar(np.arange(len(counts)), counts, align="center", alpha=0.5)
+    ax3.set_xticks(np.arange(len(counts)), v_types)
+    ax3.set_ylabel("Counts", fontsize=8)
+    ax3.set_title("Variant Modification Type and Excluded Counts", fontsize=10)
+
     plt.tight_layout()
-    plt.savefig(outfile, bbox_inches="tight", pad_inches=0)
+    # plt.savefig(outfile, bbox_inches="tight", pad_inches=0)
+    plt.savefig(outfile)
 
 
 def generate_panel_data(
