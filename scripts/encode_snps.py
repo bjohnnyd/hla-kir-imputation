@@ -4,6 +4,7 @@ from os import path
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from matplotlib.patches import Patch
 from cyvcf2 import VCF, Writer
 
 plt.rcParams["figure.figsize"] = (12, 8)
@@ -167,6 +168,8 @@ def create_summary_plot(
     strand_flip,
     outfile,
 ):
+    X_OFFSET = 0.01
+    Y_OFFSET = 0.2
     gs = gridspec.GridSpec(2, 4)
     gs.update(wspace=0.5)
     ax1 = plt.subplot(gs[0, :2])
@@ -180,14 +183,14 @@ def create_summary_plot(
     ax1.scatter(original_freqs, panel_freqs, s=10, alpha=0.7)
     ax1.annotate(
         "corr = %.2f" % orig_coef,
-        (max(original_freqs), max(panel_freqs) - 0.2),
+        (max(original_freqs) - X_OFFSET, max(panel_freqs) - Y_OFFSET),
         ha="center",
     )
     ax2.set_title("Updated VCF Frequencies Compared to Panel Frequencies", fontsize=10)
     ax2.scatter(updated_freqs, panel_freqs, s=10, alpha=0.7)
     ax2.annotate(
         "corr = %.2f" % updated_coef,
-        (max(updated_freqs), max(panel_freqs) - 0.2),
+        (max(updated_freqs) - X_OFFSET, max(panel_freqs) - Y_OFFSET),
         ha="center",
     )
 
@@ -196,19 +199,28 @@ def create_summary_plot(
         ax.set_ylabel("VCF Alternate Frequency", fontsize=8)
         ax.plot(ax.get_xlim(), ax.get_ylim(), ls="--", c=".3")
 
-    v_types = [
-        "REF --> ALT",
-        "Strand Flipped",
-        "Ambigious Variants",
-        "Uncompatible Genotype (. in GT field)",
-    ]
+    v_types = ["REF --> ALT", "Strand Flipped", "Ambigious Variants", "ALT Missing"]
     counts = [re_encoded, strand_flip, ambi, err]
-    ax3.bar(np.arange(len(counts)), counts, align="center", alpha=0.5)
-    ax3.set_xticks(np.arange(len(counts)), v_types)
+    bar_width = 0.75
+    idx = np.arange(len(counts))
+    barlist = ax3.bar(idx, counts, width=bar_width, align="center")
+    ax3.set_xticks(idx)
+    ax3.set_xticklabels(v_types, rotation=45, minor=False, fontsize=7)
+    [bar.set_color("r") for bar in barlist[2:]]
+    for i, count in enumerate(counts):
+        col = "r" if i > 1 else "black"
+        ax3.text(i, count, " " + str(count), ha="center", color=col)
     ax3.set_ylabel("Counts", fontsize=8)
     ax3.set_title("Variant Modification Type and Excluded Counts", fontsize=10)
 
-    plt.tight_layout()
+    def_color = plt.rcParams["axes.prop_cycle"].by_key()["color"][0]
+    leg_elements = [
+        Patch(facecolor=def_color, label="Updated"),
+        Patch(facecolor="red", label="Removed"),
+    ]
+    ax3.legend(handles=leg_elements, loc="upper right")
+
+    # plt.tight_layout()
     # plt.savefig(outfile, bbox_inches="tight", pad_inches=0)
     plt.savefig(outfile)
 
