@@ -7,14 +7,53 @@ import matplotlib.gridspec as gridspec
 from matplotlib.patches import Patch
 from cyvcf2 import VCF, Writer
 
+
 plt.rcParams["figure.figsize"] = (12, 8)
 
 CHROMOSOME_19_ANNOTATION = {"ucsc": "chr19", "ensembl": "19", "genbank": "CM000681.2"}
 
+# Required headers for panel input files, either kirimp (kirimp.uk1.snp.info.csv) or custom with the required fields
 KIRIMP_HEADER = ["id", "position", "allele0", "allele1", "allele1_frequency"]
-
 CUSTOM_HEADER = ["chrom", "pos", "a0", "a1", "freq"]
+
 COMPLEMENT = {"A": "T", "T": "A", "G": "C", "C": "G", ".": "."}
+
+""" CUSTOM HEADERS """
+UPDATED = {
+    "ID": "UPD",
+    "Description": "REF and ALT updated based on reference panel frequency",
+    "Type": "Flag",
+    "Number": "A",
+}
+
+PANEL_FREQ_DIF = {
+    "ID": "PFD",
+    "Description": "Alternate frequency difference to reference panel frequency",
+    "Type": "Float",
+    "Number": "A",
+}
+
+PANEL_FREQ_DIFF = {
+    "ID": "PFD",
+    "Description": "Alternate frequency difference to reference panel frequency",
+    "Type": "Float",
+    "Number": "A",
+}
+
+MISSINGNES = {
+    "ID": "MISS",
+    "Description": "Missing Genotype Frequency",
+    "Type": "Float",
+    "Number": "A",
+}
+
+MAF = {
+    "ID": "MAF",
+    "Description": "Minor Allele Frequency",
+    "Type": "Float",
+    "Number": "A",
+}
+
 """ Class to represent genotypes in 0/1 format might not be necessary as I can flip from there"""
 
 
@@ -39,14 +78,14 @@ class Genotype(object):
     __repr__ = __str__
 
 
-"""
-Custom panel format needs to be: chrom,pos,a0,a1,freq
-"""
-
-
 def main(arguments=None):
     args = parse_arguments()
     vcf = VCF(args["vcf_file"])
+    vcf.add_info_to_header(UPDATED)
+    vcf.add_info_to_header(PANEL_FREQ_DIFF)
+    vcf.add_info_to_header(MISSINGNES)
+    vcf.add_info_to_header(MAF)
+
     w = Writer(args["output"], vcf)
     panel = generate_panel_data(
         panel_file=args["reference_panel"],
@@ -84,18 +123,23 @@ def main(arguments=None):
                 continue
             if should_recode(variant, panel_variant):
                 swap_ref_alt(variant)
+                variant.INFO["UPD"] = True
                 encoded += 1
             if (
                 should_flipstrand(variant, panel_variant)
                 and args["fix_complement_ref_alt"]
             ):
-                print("Flipping Strand")
                 flipstrand(variant)
+                variant.INFO["UPD"] = True
                 strand_flipped += 1
             variant_ids.append(variant.ID)
             original_frequencies.append(variant.aaf)
             updated_frequencies.append(variant.INFO.get("AF"))
             panel_frequencies.append(panel_variant["freq"])
+            variant.INFO["PFD"] = abs(variant.INFO.get("AF") - panel_variant["freq"])
+            variant.INFO["MISS"] = np.sum(variant.gt_types == 2) / len(variant.gt_types)
+            v_freq = variant.INFO.get("AF")
+            variant.INFO["MAF"] = v_freq if v_freq < 0.5 else 1 - v_freq
         w.write_record(variant)
     w.close()
     vcf.close()
