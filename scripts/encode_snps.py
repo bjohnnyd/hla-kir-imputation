@@ -72,10 +72,7 @@ def main(arguments=None):
             panel_variant = panel[variant_id_end]
             if not variant.ALT:
                 print("-" * 100)
-                print("No alternate called or missing  due to multisampel vcf")
-                print(variant.ID)
-                print(variant.REF)
-                print(variant.ALT)
+                print("No alternate called or missing for variant %s" % variant.ID)
                 erroneous_count += 1
                 continue
             if (
@@ -95,7 +92,7 @@ def main(arguments=None):
                 print("Flipping Strand")
                 flipstrand(variant)
                 strand_flipped += 1
-            variant_ids.append(variant_id_end)
+            variant_ids.append(variant.ID)
             original_frequencies.append(variant.aaf)
             updated_frequencies.append(variant.INFO.get("AF"))
             panel_frequencies.append(panel_variant["freq"])
@@ -195,9 +192,15 @@ def create_summary_plot(
     )
 
     for ax in (ax1, ax2):
-        ax.set_xlabel("Panel Allele Frequency", fontsize=8)
-        ax.set_ylabel("VCF Alternate Frequency", fontsize=8)
+        ax.set_ylabel("Panel Allele Frequency", fontsize=8)
+        ax.set_xlabel("VCF Alternate Frequency", fontsize=8)
         ax.plot(ax.get_xlim(), ax.get_ylim(), ls="--", c=".3")
+        for i, vid in enumerate(ids):
+            if abs(updated_freqs[i] - panel_freqs[i]) > 0.1:
+                print(vid)
+                ax.annotate(
+                    vid, (updated_freqs[i], panel_freqs[i]), ha="center", fontsize=6
+                )
 
     v_types = ["REF --> ALT", "Strand Flipped", "Ambigious Variants", "ALT Missing"]
     counts = [re_encoded, strand_flip, ambi, err]
