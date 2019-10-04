@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 import argparse
-from os import path
 import numpy as np
+from os import path
+from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.patches import Patch
 from cyvcf2 import VCF, Writer
 
 
-plt.rcParams["figure.figsize"] = (12, 8)
+plt.rcParams["figure.figsize"] = (16, 12)
 
 CHROMOSOME_19_ANNOTATION = {"ucsc": "chr19", "ensembl": "19", "genbank": "CM000681.2"}
 
@@ -107,13 +108,7 @@ class VCFSummary(object):
         self.VARIANTS[v_id] = {"freq": None, "updated_freq": None, "panel_freq": None}
 
     def add_variant_dict(self, vdict):
-        assert all(
-            ["freq", "updated_freq", "panel_freq"] in [key for key in vdict.values()]
-        )
         self.VARIANTS.update(vdict)
-
-    # def update_variant(self,v_id,vdict):
-    #     self.VARIANTS[v_id].update(vdict)
 
 
 def main(arguments=None):
@@ -139,10 +134,6 @@ def main(arguments=None):
         variant_id_end = str(variant.CHROM) + "_" + str(variant.end)
         if variant_id_end in panel:
             panel_variant = panel[variant_id_end]
-            vcf_summary.add_variant(variant_id_end)
-            vcf_summary.VARIANTS[variant_id_end].update(
-                {"freq": variant.aaf, "panel_freq": panel_variant["freq"]}
-            )
             if not variant.ALT:
                 print("-" * 100)
                 print("No alternate called or missing for variant %s" % variant.ID)
@@ -166,31 +157,28 @@ def main(arguments=None):
                 flipstrand(variant)
                 variant.INFO["UPD"] = True
                 vcf_summary.add_flipped()
-            vcf_summary.VARIANTS[variant_id_end]["updated_freq"] = variant.INFO.get(
-                "AF"
-            )
+
+            vcf_summary.add_variant(variant_id_end)
+            v_freq = variant.INFO.get("AF")
+
             variant.INFO["PFD"] = abs(variant.INFO.get("AF") - panel_variant["freq"])
             variant.INFO["MISS"] = np.sum(variant.gt_types == 2) / len(variant.gt_types)
-            v_freq = variant.INFO.get("AF")
             variant.INFO["MAF"] = v_freq if v_freq < 0.5 else 1 - v_freq
+
+            vcf_summary.VARIANTS[variant_id_end].update(
+                {
+                    "freq": variant.aaf,
+                    "panel_freq": panel_variant["freq"],
+                    "updated_freq": v_freq,
+                    "MAF": variant.INFO.get("MAF"),
+                    "MISS": variant.INFO.get("MISS"),
+                    "PFD": variant.INFO.get("PFD"),
+                }
+            )
         w.write_record(variant)
     w.close()
     vcf.close()
-    # create_summary_plot(
-    #     ids=variant_ids,
-    #     original_freqs=original_frequencies,
-    #     updated_freqs=updated_frequencies,
-    #     panel_freqs=panel_frequencies,
-    #     ambi=ambi_count,
-    #     err=erroneous_count,
-    #     re_encoded=encoded,
-    #     strand_flip=strand_flipped,
-    #     outfile=args["output"]
-    #     .replace(".vcf", "")
-    #     .replace(".bcf", "")
-    #     .replace(".gz", "")
-    #     + ".png",
-    # )
+    create_summary_plot(vcf_summary, outfile=args["output"].split(".")[0] + ".png")
 
 
 def swap_ref_alt(variant):
@@ -231,56 +219,67 @@ def should_flipstrand(variant, panel_variant, COMPLEMENT=COMPLEMENT):
     return unsynced and is_alt_complement
 
 
-def create_summary_plot(
-    ids,
-    original_freqs,
-    updated_freqs,
-    panel_freqs,
-    ambi,
-    err,
-    re_encoded,
-    strand_flip,
-    outfile,
-):
+def create_summary_plot(v_summary, outfile):
     X_OFFSET = 0.01
     Y_OFFSET = 0.2
-    gs = gridspec.GridSpec(2, 4)
-    gs.update(wspace=0.5)
-    ax1 = plt.subplot(gs[0, :2])
-    ax2 = plt.subplot(gs[0, 2:])
-    ax3 = plt.subplot(gs[1, 1:3])
 
-    orig_coef = np.corrcoef(original_freqs, panel_freqs)[1, 0]
-    updated_coef = np.corrcoef(updated_freqs, panel_freqs)[1, 0]
+    v_ids = [v_id for v_id in v_summary.VARIANTS]
 
-    ax1.set_title("Original VCF Frequencies Compared to Panel Frequencies", fontsize=10)
-    ax1.scatter(original_freqs, panel_freqs, s=10, alpha=0.7)
-    ax1.annotate(
-        "corr = %.2f" % orig_coef,
-        (max(original_freqs) - X_OFFSET, max(panel_freqs) - Y_OFFSET),
-        ha="center",
-    )
-    ax2.set_title("Updated VCF Frequencies Compared to Panel Frequencies", fontsize=10)
-    ax2.scatter(updated_freqs, panel_freqs, s=10, alpha=0.7)
-    ax2.annotate(
-        "corr = %.2f" % updated_coef,
-        (max(updated_freqs) - X_OFFSET, max(panel_freqs) - Y_OFFSET),
-        ha="center",
+    fig = plt.figure()
+
+    ax1 = fig.add_subplot(321)
+    ax2 = fig.add_subplot(323, sharex=ax1)
+    ax3 = fig.add_subplot(325)
+    ax4 = fig.add_subplot(222)
+    ax5 = fig.add_subplot(224, sharex=ax4)
+
+    (freq, panel_freq, updated_freq) = zip(
+        *[
+            (
+                v_summary.VARIANTS[v_id]["freq"],
+                v_summary.VARIANTS[v_id]["panel_freq"],
+                v_summary.VARIANTS[v_id]["updated_freq"],
+            )
+            for v_id in v_ids
+        ]
     )
 
-    for ax in (ax1, ax2):
+    coefs = (
+        np.corrcoef(freq, panel_freq)[1, 0],
+        np.corrcoef(updated_freq, panel_freq)[1, 0],
+    )
+    titles = (
+        "Original VCF Frequencies Compared to Panel Frequencies",
+        "Updated VCF Frequencies Compared to Panel Frequencies",
+    )
+
+    freqs = (freq, updated_freq)
+
+    for i, ax in enumerate([ax1, ax2]):
+        ax.set_title(titles[i], fontsize=9)
+        ax.scatter(freqs[i], panel_freq, s=10, alpha=0.7)
+        ax.annotate(
+            "corr = %.2f" % coefs[i],
+            (max(freqs[i]) - X_OFFSET, max(panel_freq) - Y_OFFSET),
+            ha="center",
+        )
         ax.set_ylabel("Panel Allele Frequency", fontsize=8)
         ax.set_xlabel("VCF Alternate Frequency", fontsize=8)
         ax.plot(ax.get_xlim(), ax.get_ylim(), ls="--", c=".3")
-        for i, vid in enumerate(ids):
-            if abs(updated_freqs[i] - panel_freqs[i]) > 0.1:
-                print(vid)
-                ax.annotate(
-                    vid, (updated_freqs[i], panel_freqs[i]), ha="center", fontsize=6
-                )
+        # for i, vid in enumerate(ids):
+        #     if abs(updated_freq[i] - panel_freq[i]) > 0.1:
+        #         print(vid)
+        #         ax.annotate(
+        #             vid, (updated_freq[i], panel_freq[i]), ha="center", fontsize=6
+        #         )
 
     v_types = ["REF --> ALT", "Strand Flipped", "Ambigious Variants", "ALT Missing"]
-    counts = [re_encoded, strand_flip, ambi, err]
+    counts = [
+        v_summary.updated,
+        v_summary.flipped,
+        v_summary.ambigious,
+        v_summary.unknown_alt,
+    ]
     bar_width = 0.75
     idx = np.arange(len(counts))
     barlist = ax3.bar(idx, counts, width=bar_width, align="center")
@@ -291,7 +290,7 @@ def create_summary_plot(
         col = "r" if i > 1 else "black"
         ax3.text(i, count, " " + str(count), ha="center", color=col)
     ax3.set_ylabel("Counts", fontsize=8)
-    ax3.set_title("Variant Modification Type and Excluded Counts", fontsize=10)
+    ax3.set_title("Variant Modification Type and Excluded Counts", fontsize=9)
 
     def_color = plt.rcParams["axes.prop_cycle"].by_key()["color"][0]
     leg_elements = [
@@ -300,8 +299,40 @@ def create_summary_plot(
     ]
     ax3.legend(handles=leg_elements, loc="upper right")
 
-    # plt.tight_layout()
-    # plt.savefig(outfile, bbox_inches="tight", pad_inches=0)
+    (minor_freq, missing_freq, freq_diff) = zip(
+        *[
+            (
+                v_summary.VARIANTS[v_id]["MAF"],
+                v_summary.VARIANTS[v_id]["MISS"],
+                v_summary.VARIANTS[v_id]["PFD"],
+            )
+            for v_id in v_ids
+        ]
+    )
+
+    gt_coefs = (
+        np.corrcoef(minor_freq, freq_diff)[1, 0],
+        np.corrcoef(missing_freq, freq_diff)[1, 0],
+    )
+
+    gt_freqs = (minor_freq, missing_freq)
+    gt_titles = (
+        "Minor Allele Frequency Compared to Difference in Frequency Between Panel and VCF",
+        "Genotype Missingness Compared to Difference in Frequency Between Panel and VCF",
+    )
+    y_labs = ("Minor Allele Frequency", "Missing Genotype Frequency")
+
+    for i, ax in enumerate([ax4, ax5]):
+        ax.set_title(gt_titles[i], fontsize=9)
+        ax.scatter(freq_diff, gt_freqs[i], s=10, alpha=0.7)
+        ax.set_ylabel(y_labs[i], fontsize=8)
+        ax.set_xlabel("Panel vs VCF Frequency Difference", fontsize=8)
+        ax.plot(ax.get_xlim(), ax.get_ylim(), ls="--", c=".3")
+        ax.annotate(
+            "corr = %.2f" % gt_coefs[i],
+            (max(freq_diff) - X_OFFSET, max(gt_freqs[i]) - Y_OFFSET),
+            ha="center",
+        )
     plt.savefig(outfile)
 
 
