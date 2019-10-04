@@ -78,6 +78,44 @@ class Genotype(object):
     __repr__ = __str__
 
 
+""" Class to keep track of VCF file summaries for variants """
+
+
+class VCFSummary(object):
+    __slots__ = ("ambigious", "unknown_alt", "updated", "flipped", "VARIANTS")
+
+    def __init__(self):
+        self.VARIANTS = {}
+        self.ambigious = 0
+        self.unknown_alt = 0
+        self.updated = 0
+        self.flipped = 0
+
+    def add_ambigious(self):
+        self.ambigious += 1
+
+    def add_unknown_alt(self):
+        self.unknown_alt += 1
+
+    def add_updated(self):
+        self.updated += 1
+
+    def add_flipped(self):
+        self.flipped += 1
+
+    def add_variant(self, v_id):
+        self.VARIANTS[v_id] = {"freq": None, "updated_freq": None, "panel_freq": None}
+
+    def add_variant_dict(self, vdict):
+        assert all(
+            ["freq", "updated_freq", "panel_freq"] in [key for key in vdict.values()]
+        )
+        self.VARIANTS.update(vdict)
+
+    # def update_variant(self,v_id,vdict):
+    #     self.VARIANTS[v_id].update(vdict)
+
+
 def main(arguments=None):
     args = parse_arguments()
     vcf = VCF(args["vcf_file"])
@@ -95,47 +133,42 @@ def main(arguments=None):
         separator=args["separator"],
     )
 
-    variant_ids = []
-    original_frequencies = []
-    updated_frequencies = []
-    panel_frequencies = []
-
-    ambi_count = 0
-    erroneous_count = 0
-    encoded = 0
-    strand_flipped = 0
+    vcf_summary = VCFSummary()
 
     for variant in vcf:
         variant_id_end = str(variant.CHROM) + "_" + str(variant.end)
         if variant_id_end in panel:
             panel_variant = panel[variant_id_end]
+            vcf_summary.add_variant(variant_id_end)
+            vcf_summary.VARIANTS[variant_id_end].update(
+                {"freq": variant.aaf, "panel_freq": panel_variant["freq"]}
+            )
             if not variant.ALT:
                 print("-" * 100)
                 print("No alternate called or missing for variant %s" % variant.ID)
-                erroneous_count += 1
+                vcf_summary.add_unknown_alt()
                 continue
             if (
                 args["ambigious"]
                 and variant.aaf > args["min_ambigious_threshold"]
                 and variant.aaf < args["max_ambigious_threshold"]
             ):
-                ambi_count += 1
+                vcf_summary.add_ambigious()
                 continue
             if should_recode(variant, panel_variant):
                 swap_ref_alt(variant)
                 variant.INFO["UPD"] = True
-                encoded += 1
+                vcf_summary.add_updated()
             if (
                 should_flipstrand(variant, panel_variant)
                 and args["fix_complement_ref_alt"]
             ):
                 flipstrand(variant)
                 variant.INFO["UPD"] = True
-                strand_flipped += 1
-            variant_ids.append(variant.ID)
-            original_frequencies.append(variant.aaf)
-            updated_frequencies.append(variant.INFO.get("AF"))
-            panel_frequencies.append(panel_variant["freq"])
+                vcf_summary.add_flipped()
+            vcf_summary.VARIANTS[variant_id_end]["updated_freq"] = variant.INFO.get(
+                "AF"
+            )
             variant.INFO["PFD"] = abs(variant.INFO.get("AF") - panel_variant["freq"])
             variant.INFO["MISS"] = np.sum(variant.gt_types == 2) / len(variant.gt_types)
             v_freq = variant.INFO.get("AF")
@@ -143,21 +176,21 @@ def main(arguments=None):
         w.write_record(variant)
     w.close()
     vcf.close()
-    create_summary_plot(
-        ids=variant_ids,
-        original_freqs=original_frequencies,
-        updated_freqs=updated_frequencies,
-        panel_freqs=panel_frequencies,
-        ambi=ambi_count,
-        err=erroneous_count,
-        re_encoded=encoded,
-        strand_flip=strand_flipped,
-        outfile=args["output"]
-        .replace(".vcf", "")
-        .replace(".bcf", "")
-        .replace(".gz", "")
-        + ".png",
-    )
+    # create_summary_plot(
+    #     ids=variant_ids,
+    #     original_freqs=original_frequencies,
+    #     updated_freqs=updated_frequencies,
+    #     panel_freqs=panel_frequencies,
+    #     ambi=ambi_count,
+    #     err=erroneous_count,
+    #     re_encoded=encoded,
+    #     strand_flip=strand_flipped,
+    #     outfile=args["output"]
+    #     .replace(".vcf", "")
+    #     .replace(".bcf", "")
+    #     .replace(".gz", "")
+    #     + ".png",
+    # )
 
 
 def swap_ref_alt(variant):
