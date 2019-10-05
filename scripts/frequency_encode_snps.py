@@ -155,20 +155,6 @@ class VCFSummary(object):
             self.kept,
         )
 
-    __repr__ = __str__
-
-    def add_ambigious(self):
-        self.ambigious += 1
-
-    def add_unknown_alt(self):
-        self.unknown_alt += 1
-
-    def add_updated(self):
-        self.updated += 1
-
-    def add_flipped(self):
-        self.flipped += 1
-
     def add_variant(self, v_id):
         self.VARIANTS[v_id] = {"freq": None, "updated_freq": None, "panel_freq": None}
 
@@ -201,6 +187,8 @@ class VCFSummary(object):
 
     def updates(self):
         return np.array([v["updated"] == 1 for k, v in sorted(self.VARIANTS.items())])
+
+    __repr__ = __str__
 
 
 def main(arguments=None):
@@ -249,14 +237,14 @@ def main(arguments=None):
                 print_variant_toml(
                     variant, panel_variant["freq"], "removed", "unknown_alt/monomorphic"
                 )
-                vcf_summary.add_unknown_alt()
+                vcf_summary.unknown_alt += 1
                 continue
             if (
                 args["ambigious"]
                 and variant.aaf > args["min_ambigious_threshold"]
                 and variant.aaf < args["max_ambigious_threshold"]
             ):
-                vcf_summary.add_ambigious()
+                vcf_summary.ambigious += 1
                 print_variant_toml(
                     variant, panel_variant["freq"], "removed", "ambigious_frequency"
                 )
@@ -264,7 +252,7 @@ def main(arguments=None):
             if should_recode(variant, panel_variant):
                 swap_ref_alt(variant)
                 variant.INFO["UPD"] = 1
-                vcf_summary.add_updated()
+                vcf_summary.updated +=1 
                 status = "updated"
                 reason = "freqeuncy_unsynced"
             if (
@@ -273,7 +261,7 @@ def main(arguments=None):
             ):
                 flipstrand(variant)
                 variant.INFO["UPD"] = 1
-                vcf_summary.add_flipped()
+                vcf_summary.flipped += 1
                 status = "strand_flipped"
                 reason = "ref/alt_not_in_panel_nucleotides"
 
