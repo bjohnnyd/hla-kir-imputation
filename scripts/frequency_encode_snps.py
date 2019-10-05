@@ -295,7 +295,7 @@ def main(arguments=None):
         vcf_summary, outfile=plot_file, threshold=args["outlier_threshold"]
     )
     print(vcf_summary, file=sys.stderr)
-    print("n_reference_panel_size=%d" % len(panel.keys()))
+    print("n_reference_panel_size=%d" % len(panel.keys()), file=sys.stderr)
 
 
 def print_variant_toml(

@@ -1,6 +1,10 @@
 from os import path
 from snakemake.utils import validate
 
+# TODO: 
+    # 1. Fix shapeit genetic map generator file 
+    # 2. Fix shapeit config schema json
+
 
 configfile: "config.yaml"
 validate(config, "config.schema.json")
@@ -11,7 +15,8 @@ singularity: "docker://continuumio/miniconda3"
 
 rule all_kirimp:
     input:
-        expand('output/{project}/kirimp/01_freq_encode_snps/{project}.vcf.gz', project=config['project'].keys())
+        expand('output/{project}/kirimp/01_freq_encode_snps/{project}.vcf.gz', project=config['project'].keys()),
+        expand('output/{project}/kirimp/02_shapeit/{project}.phased.{out_type}.gz', project=config['project'].keys(), out_type = ['haps', 'sample']),
 
 rule kirimp_panel:
     input:
@@ -25,3 +30,4 @@ rule liftover:
 include: "rules/kirimp_panel.smk"
 include: "rules/liftover.smk"
 include: "rules/freq_encode_snps.smk"
+include: "rules/shapeit.smk"

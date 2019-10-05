@@ -3,11 +3,13 @@
 # one row per sample. It can be parsed easily via pandas.
 
 #KIRIMP_PANEL_URL: "http://imp.science.unimelb.edu.au/kir/static/kirimp.uk1.snp.info.csv"
-TEST: ""
 project:
   taherne:
     liftover:
       plink: "/home/johnny/Projects/Personal/traherne/input/traherne/traherne.bed"
     freq_encode_snps:
       vcf: "output/taherne/liftover/04_hg19_vcf/taherne.hg18ToHg19.vcf.gz"
-      additional: "--outlier-threshold 1.1"
+      additional: "--outlier-threshold 0.1"
+    # shapeit:
+    #   vcf: "output/taherne/liftover/04_hg19_vcf/taherne.hg18ToHg19.vcf.gz"
+    #   additional: "--outlier-threshold 0.1"
