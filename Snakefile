@@ -11,6 +11,10 @@ singularity: "docker://continuumio/miniconda3"
 
 rule all_kirimp:
     input:
+        expand('output/{project}/kirimp/01_freq_encode_snps/{project}.vcf.gz', project=config['project'].keys())
+
+rule kirimp_panel:
+    input:
     	"input/meta/kirimp/%s" % path.basename(config['KIRIMP_PANEL_URL'])
 
 rule liftover:
@@ -20,3 +24,4 @@ rule liftover:
 
 include: "rules/kirimp_panel.smk"
 include: "rules/liftover.smk"
+include: "rules/freq_encode_snps.smk"

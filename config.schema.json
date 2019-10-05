@@ -34,6 +34,10 @@
                         "liftover": {
                             "$ref": "#/definitions/liftover",
                             "description": "settings relating to converting refernce hg16/hg17/hg18 --> hg19"
+                        },
+                        "freq_encode_snps": {
+                            "$ref": "#/definitions/freq_encode_snps",
+                            "description": "setting for re-encoding vcf variants to referenc epanel frequency"
                         }
                     }
                 }
@@ -48,7 +52,16 @@
             "properties": {
                 "reference": {
                     "type": "string",
-                    "enum": ["HG38", "HG18", "HG17", "HG16", "hg38", "hg18", "hg17", "hg16"],
+                    "enum": [
+                        "HG38",
+                        "HG18",
+                        "HG17",
+                        "HG16",
+                        "hg38",
+                        "hg18",
+                        "hg17",
+                        "hg16"
+                    ],
                     "default": "hg18"
                 },
                 "plink": {
@@ -57,12 +70,29 @@
                     "description": "path to plink bed file (must contain bim/fam in the same directory)"
                 },
                 "vcf": {
-                    "type": "string",
-                    "pattern": ".+(vcf|bcf|vcf.gz)",
-                    "description": "path to plink bed file (must contain bim/fam in the same directory)"
+                    "$ref": "#/definitions/vcf"
                 }
             },
             "required": ["plink"]
+        },
+        "freq_encode_snps": {
+            "type": "object",
+            "properties": {
+                "vcf": {
+                    "$ref": "#/definitions/vcf"
+                },
+                "additional": {
+                    "$ref": "#/definitions/additional_params"
+                }
+            }
+        },
+        "vcf": {
+            "type": "string",
+            "pattern": ".+(vcf|bcf|vcf.gz)"
+        },
+        "additional_params": {
+            "type": "string",
+            "description": "Additional parameters to pass to rules"
         }
     }
 }
