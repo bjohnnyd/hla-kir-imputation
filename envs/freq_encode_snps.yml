@@ -1,4 +1,4 @@
-name: encode_snps
+name: freq_encode_snps
 channels: 
   - bioconda
   - conda-forge

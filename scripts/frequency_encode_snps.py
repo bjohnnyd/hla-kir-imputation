@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 import argparse
+import re
+import sys
+import textwrap
 import numpy as np
 from os import path
 from pathlib import Path
@@ -7,9 +10,6 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.patches import Patch
 from cyvcf2 import VCF, Writer
-
-
-# TODO: add total number of original variants to plot, some summary text file
 
 plt.rcParams["figure.figsize"] = (18, 14)
 
@@ -57,6 +57,36 @@ MAF = {
     "Number": "A",
 }
 
+toml_header = """
+[encoder_settings]
+outlier_threshold=%s
+minimum_ambigious_threshold=%f
+maximum_ambigious_threshold=%f
+reference_panel_type=%s
+chromosome_annotation=%s
+ambigious_dropped=%r
+correct_complement=%r
+
+
+[variant]
+
+
+"""
+
+variant_toml = """
+    [variant.%s]
+    status = %s
+    reason = %s
+    frequency = %f
+    panel_frequency=%r
+    updated_frequency=%r
+    minor_allele_frequency=%r
+    missing_genotype_frequency=%r
+    panel_frequency_difference=%r
+
+
+"""
+
 """ Class to represent genotypes in 0/1 format might not be necessary as I can flip from there"""
 
 
@@ -90,6 +120,8 @@ class VCFSummary(object):
         "unknown_alt",
         "updated",
         "flipped",
+        "n_in_panel",
+        "kept",
         "__freqs",
         "VARIANTS",
     )
@@ -100,7 +132,30 @@ class VCFSummary(object):
         self.unknown_alt = 0
         self.updated = 0
         self.flipped = 0
+        self.n_in_panel = 0
+        self.kept = 0
         self.__freqs = None
+
+    def __str__(self):
+        summary_toml = """
+        [summary]
+        n_ambigious_variants=%d
+        n_unknown_alt_or_monomorphic=%d
+        n_updated=%d
+        n_flipped_strand=%d
+        vcf_variants_in_panel=%d
+        vcf_variants_in_panel_after_encoding_snps=%d
+        """.rstrip()
+        return textwrap.dedent(summary_toml) % (
+            self.ambigious,
+            self.unknown_alt,
+            self.updated,
+            self.flipped,
+            self.n_in_panel,
+            self.kept,
+        )
+
+    __repr__ = __str__
 
     def add_ambigious(self):
         self.ambigious += 1
@@ -167,14 +222,33 @@ def main(arguments=None):
 
     vcf_summary = VCFSummary()
 
+    print(
+        toml_header
+        % (
+            args["outlier_threshold"],
+            args["min_ambigious_threshold"],
+            args["max_ambigious_threshold"],
+            args["reference_panel_type"],
+            args["chromosome_annotation"],
+            args["ambigious"],
+            args["fix_complement_ref_alt"],
+        ),
+        file=sys.stderr,
+    )
     for variant in vcf:
+        status = "unchanged"
+        reason = "None"
+        panel_variant_freq = None
         variant_id_end = str(variant.CHROM) + "_" + str(variant.end)
         if variant_id_end in panel:
             variant.INFO["UPD"] = 0
             panel_variant = panel[variant_id_end]
+            panel_variant_freq = panel_variant["freq"]
+            vcf_summary.n_in_panel += 1
             if not variant.ALT:
-                print("-" * 100)
-                print("No alternate called or missing for variant %s" % variant.ID)
+                print_variant_toml(
+                    variant, panel_variant["freq"], "removed", "unknown_alt/monomorphic"
+                )
                 vcf_summary.add_unknown_alt()
                 continue
             if (
@@ -183,11 +257,16 @@ def main(arguments=None):
                 and variant.aaf < args["max_ambigious_threshold"]
             ):
                 vcf_summary.add_ambigious()
+                print_variant_toml(
+                    variant, panel_variant["freq"], "removed", "ambigious_frequency"
+                )
                 continue
             if should_recode(variant, panel_variant):
                 swap_ref_alt(variant)
                 variant.INFO["UPD"] = 1
                 vcf_summary.add_updated()
+                status = "updated"
+                reason = "freqeuncy_unsynced"
             if (
                 should_flipstrand(variant, panel_variant)
                 and args["fix_complement_ref_alt"]
@@ -195,6 +274,8 @@ def main(arguments=None):
                 flipstrand(variant)
                 variant.INFO["UPD"] = 1
                 vcf_summary.add_flipped()
+                status = "strand_flipped"
+                reason = "ref/alt_not_in_panel_nucleotides"
 
             vcf_summary.add_variant(variant_id_end)
             v_freq = variant.INFO.get("AF")
@@ -215,13 +296,35 @@ def main(arguments=None):
                     "updated": variant.INFO.get("UPD"),
                 }
             )
+            print_variant_toml(variant, panel_variant_freq, status, reason)
+            vcf_summary.kept += 1
         w.write_record(variant)
     w.close()
     vcf.close()
+    plot_file = re.sub(r"(vcf|bcf)(\.gz)*$", "png", args["output"])
+
     create_summary_plot(
-        vcf_summary,
-        outfile=args["output"].split(".")[0] + ".png",
-        threshold=args["outlier_threshold"],
+        vcf_summary, outfile=plot_file, threshold=args["outlier_threshold"]
+    )
+    print(vcf_summary, file=sys.stderr)
+    print("n_reference_panel_size=%d" % len(panel.keys()))
+
+
+def print_variant_toml(
+    variant, panel_variant_freq, status, reason, variant_toml=variant_toml
+):
+
+    variant_tup = (
+        variant.INFO.get("AF", None),
+        variant.INFO.get("MAF", None),
+        variant.INFO.get("MISS", None),
+        variant.INFO.get("PFD", None),
+    )
+
+    print(
+        variant_toml
+        % ((variant.ID, status, reason, variant.aaf, panel_variant_freq) + variant_tup),
+        file=sys.stderr,
     )
 
 
@@ -436,7 +539,7 @@ def parse_arguments(arguments=None):
         "--separator", help="Custom reference panel column separator", type=str
     )
     optional.add_argument(
-        "-o", "--output", help="Output vcf file", required=False, type=str
+        "-o", "--output", help="Output vcf file", required=True, type=str
     )
     optional.add_argument(
         "-chr",
