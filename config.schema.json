@@ -58,7 +58,7 @@
                             "$ref": "#/definitions/shapeit",
                             "description": "setting for shapeit phasing of variants",
                             "default": {
-                                "gmap": "output/kirimp/gmap/chr19/kirimp.chr19.gmap.txt.gz",
+                                "gmap": "input/meta/shapeit/kirimp.chr19.gmap.txt.gz",
                                 "pbwt": 8,
                                 "pbwt-modulo": 8,
                                 "regions": [19],

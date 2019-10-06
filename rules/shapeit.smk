@@ -6,7 +6,7 @@ FTP = FTPRemoteProvider()
 
 rule generate_kirimp_gmap:
     input: FTP.remote(config['KIRIMP_GENMAP_URL'], keep_local=False)
-    output: 'output/kirimp/gmap/chr19/kirimp.chr19.gmap.txt.gz'
+    output: 'input/meta/shapeit/kirimp.chr19.gmap.txt.gz'
     log : 'logs/generate_kirimp_gmap/kirimp.chr19.gmap.log'
     shell: "cat {input} | tar xzfO - --wildcards '*_chr19.txt' 2> {log} | sed -E 's:^chr::' | gzip > {output}"
 
