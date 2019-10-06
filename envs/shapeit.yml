@@ -1,0 +1,8 @@
+name: shapeit
+channels: 
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - shapeit4=4.0
+  - bcftools=1.9

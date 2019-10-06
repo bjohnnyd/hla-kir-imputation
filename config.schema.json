@@ -9,11 +9,19 @@
             "type": "string",
             "default": "http://imp.science.unimelb.edu.au/kir/static/kirimp.uk1.snp.info.csv"
         },
+        "KIRIMP_GENMAP_URL": {
+            "type": "string",
+            "default": "ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/working/20110106_recombination_hotspots/HapmapII_GRCh37_RecombinationHotspots.tar.gz"
+        },
         "BCFTOOLS_THREADS": {
             "type": "integer",
             "default": 4
         },
         "PLINK_THREADS": {
+            "type": "integer",
+            "default": 4
+        },
+        "SHAPEIT_THREADS": {
             "type": "integer",
             "default": 4
         },
@@ -33,15 +41,29 @@
                     "properties": {
                         "liftover": {
                             "$ref": "#/definitions/liftover",
-                            "description": "settings relating to converting refernce hg16/hg17/hg18 --> hg19"
+                            "description": "settings relating to converting refernce hg16/hg17/hg18 --> hg19",
+                            "default": {
+                                "reference": "HG18"
+                            }
                         },
                         "freq_encode_snps": {
                             "$ref": "#/definitions/freq_encode_snps",
-                            "description": "setting for re-encoding vcf variants to referenc epanel frequency"
+                            "description": "setting for re-encoding vcf variants to reference panel frequency",
+                            "default": {
+                                "vcf": "output/{project}/liftover/04_hg19_vcf/{project}.{reference}ToHg19.vcf.gz",
+                                "additional": "--outlier-threshold 0.1"
+                            }
                         },
                         "shapeit": {
                             "$ref": "#/definitions/shapeit",
-                            "description": "setting for shapeit phasing of variants"
+                            "description": "setting for shapeit phasing of variants",
+                            "default": {
+                                "gmap": "output/kirimp/gmap/chr19/kirimp.chr19.gmap.txt.gz",
+                                "pbwt": 8,
+                                "pbwt-modulo": 8,
+                                "regions": [19],
+                                "additional": ""
+                            }
                         }
                     }
                 }
@@ -50,9 +72,6 @@
         },
         "liftover": {
             "type": "object",
-            "default": {
-                "reference": "HG18"
-            },
             "properties": {
                 "reference": {
                     "type": "string",
@@ -98,12 +117,23 @@
                 },
                 "genmap": {
                     "type": "string",
-                    "default": "ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/working/20110106_recombination_hotspots/HapmapII_GRCh37_RecombinationHotspots.tar.gz",
-                    "description": "genetic map to be used with phasing of panel"
+                    "description": "genetic map to be used with phasing"
+                },
+                "pbwt": {
+                    "type": "integer",
+                    "description": "numbers of confitioning neighbours (variant density)"
+                },
+                "pbwt-modulo": {
+                    "type": "integer",
+                    "description": "numbers of confitioning neighbours (variant density)"
+                },
+                "regions": {
+                    "type": "array",
+                    "items": [{ "type": "number" }],
+                    "description": "numbers of confitioning neighbours (variant density)"
                 },
                 "additional": {
-                    "$ref": "#/definitions/additional_params",
-                    "default": ""
+                    "$ref": "#/definitions/additional_params"
                 }
             }
         },
@@ -113,7 +143,8 @@
         },
         "additional_params": {
             "type": "string",
-            "description": "Additional parameters to pass to rules"
+            "description": "Additional parameters to pass to rules",
+            "default": ""
         }
     }
 }
