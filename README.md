@@ -6,46 +6,156 @@
 
 TODO:
 
-- possible genetic map locations:
-  - `ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/working/20110106_recombination_hotspots/`
-  - `https://github.com/joepickrell/1000-genomes-genetic-maps/blob/master/interpolated_OMNI/chr19.OMNI.interpolated_genetic_map.gz`
-This is the template for a new Snakemake workflow. Replace this text with a comprehensive description covering the purpose and domain.
-Insert your code into the respective folders, i.e. `scripts`, `rules`, and `envs`. Define the entry point of the workflow in the `Snakefile` and the main configuration in the `config.yaml` file.
-
 ## Authors
 
 * Johnathan Debebe (@JohnnyBD)
 
 ## Usage
 
-### Simple
+### Quickstart
 
-#### Step 1: Install workflow
+To run the pipeline edit `config.yaml` to point to your input PLINK bed file by placing the following yaml directives:
 
-If you simply want to use this workflow, download and extract the [latest release](https://github.com/snakemake-workflows/hla-kir-imp/releases).
-If you intend to modify and further extend this workflow or want to work under version control, fork this repository as outlined in [Advanced](#advanced). The latter way is recommended.
+```yaml
+project:
+  <project name>:
+    liftover:
+      plink: <path to PLINK bed file>
+```
 
-In any case, if you use this workflow in a paper, don't forget to give credits to the authors by citing the URL of this repository and, if available, its DOI (see above).
+where `<project name>` is the name you want to be associated with your run and output and `<path to PLINK bed file>` is the full or relative path to your input PLINK bed file.
 
-#### Step 2: Configure workflow
+To run the pipeline run the command:
 
-Configure the workflow according to your needs via editing the file `config.yaml`.
+```{bash}
+snakemake -j<number of parallel jobs> --use-conda 
+```
 
-#### Step 3: Execute workflow
+The default PLINK bed file is assumed to be on `hg18` reference but additional reference types are possible as `hg16`,`hg17`,`hg38`. To specify for example reference `hg17` edit `config.yaml` with the following:
+
+```yaml
+project:
+  <project name>:
+    liftover:
+      plink: <path to PLINK bed file>
+      reference: hg17
+```
+
+All output will produced inside the `output/<project name>` directory.
+
+Configure the workflow according to your needs via editing the file `config.yaml`. To see the list of default configurations settings run the command `snakemake print_defaults`.
+
+### Workflow Overview
+
+The full workflow consists of creating datasets ready for imputation:
+
+![alt text](dags/dag.svg "Example Full Workflow")
+
+The steps can be summarized as:
+
+1. Convert input PLINK bed files to reference b37
+2. Encode REF/ALT alleles the same as the KIR*IMP reference panel
+3. Phase the encoded VCF using shapeit4 and shapeit.
+
+### Running Specific Parts or Running Workflow in Steps
+
+The workflow can be ran from a specific part. In addition, the workflow can be run in steps allowing to explore the data before phasing and filtering.
+
+To see the list of specific rules/steps that are possible run `snakemake --list-target-rules`.  Each of the target rules listed can be run with the command `snakemake -j<number of parallel jobs> [OPTIONS] <target rule name>`.
+
+#### Example 1: Running Only Liftover
+
+It is possible to only use the workflow to perform liftover of PLINK bed files from specific reference to `b37`. This will produce a VCF file with the reference being `b37`.
+
+To perform only liftover with the same `config.yaml` from [Quickstart](#quickstart) run the command:
+
+```{bash}
+snakemake -j<number of parallel jobs> --use-conda liftover
+```
+
+#### Example 2: Encode VCF Without Liftover or Perform Liftover and Encoding Without Phasing With SHAPEIT
+
+If you have VCF file based on reference `b37` it is possible to only run encoding without liftover. To encode the VCF file using KIR*IMP reference panel edit `config.yaml`:
+
+```yaml
+project:
+  <project name>:
+    freq_encode_snps:
+      vcf: <path to VCF file>
+```
+
+then execute snakemake using the command:
+
+```{bash}
+snakemake -j<number of parallel jobs> --use-conda kirimp_encode
+```
+
+If the above command is executed with the `config.yaml` settings from [Quickstart](#quickstart) only liftover and encoding will be performed. This allows inspection of the variants in the VCF by looking at the images produced in `output/{project}/kirimp/01_freq_encode_snps/{project}.png`.  The images might help in deducing what threshold to use during SHAPEIT for filtering troublesome variants with missing genotypes.
+
+
+
+#### Example 3: Run SHAPEIT After Checking VCF Statistics
+
+To run SHAPEIT and prepare data for KIR*IMP using the file produced by running `snakemake -j<number of parallel jobs> --use-conda kirimp_encode` run the command:
+
+```{bash}
+snakemake -j<number of parallel jobs> --use-conda kirimp_ready
+```
+
+In addition, SHAPEIT can be run on a specific VCF (not necessarily produced by the workflow) by specifying the vcf file under the shapeit directive in `config.yaml`:
+
+```yaml
+project:
+  <project name>:
+    shapeit
+      vcf: <Path to VCF file>
+```
+
+### Additional and Default Parameters
+
+The default parameters settings and there descriptions are listed below and can be modified by placing it in `config.yaml` with the desired values different from defaults:
+
+```yaml
+BCFTOOLS_THREADS: 4
+KIRIMP_PANEL_URL: http://imp.science.unimelb.edu.au/kir/static/kirimp.uk1.snp.info.csv
+PLINK_THREADS: 4
+SHAPEIT_GENMAP_URL: https://github.com/odelaneau/shapeit4/blob/master/maps/genetic_maps.b37.tar.gz?raw=true
+SHAPEIT_THREADS: 4
+
+project:
+  <project name>:
+    freq_encode_snps:
+      vcf: output/{project}/liftover/04_hg19_vcf/{project}.{reference}ToHg19.vcf.gz
+      additional: "--outlier-threshold 0.1" # additional parameters to be passed to the script in 'scripts/frequency_encode_snps.py'.
+    liftover:
+      reference: hg18 # Input PLINK bed reference can be either hg16, hg17, hg18 or hg38
+    shapeit:
+      vcf: output/{project}/kirimp/01_freq_encode_snps/{project}.vcf.gz
+      gmap: input/meta/shapeit/kirimp.chr19.gmap.txt.gz
+      pbwt: 8 # shapeit4: determines the number of conditioning neighbours, higher number should produce better accuracy but slower runtimes
+      pbwt-modulo: 8 # shapeit4: determines variants for storing pbwt indexes
+      regions: [19] # chromosomes for phasing default is 19 for KIR*IMP
+      states: 500 # shapeit2: determines number of haplotypes for conditioning, higher number should produce better accuracy but slower runtimes
+      min_missing: 0.25 # variants with missing genotype rate larger than this will be discarded before phasing with SHAPEIT. Inspect the image from kirimp_encode to determine threshold
+      v2_additional: "" # Additional parameters for shapeit version 2.  Description of possible settings can be found at https://mathgen.stats.ox.ac.uk/genetics_software/shapeit/shapeit.html
+      v4_additional: "" # Additional parameters for shapeit version 4.  Description of possible settings can be found at https://odelaneau.github.io/shapeit4/
+```
+
+### Workflow Running Options
 
 Test your configuration by performing a dry-run via
 
-    snakemake --use-conda -n
+    snakemake --use-conda -npr
 
 Execute the workflow locally via
 
-    snakemake --use-conda --cores $N
+    snakemake --use-conda -j $N
 
 using `$N` cores or run it in a cluster environment via
 
     snakemake --use-conda --cluster qsub --jobs 100
 
-or
+or if `DRMAA` is available
 
     snakemake --use-conda --drmaa --jobs 100
 
@@ -61,25 +171,3 @@ See the [Snakemake documentation](https://snakemake.readthedocs.io/en/stable/exe
 After successful execution, you can create a self-contained interactive HTML report with all results via:
 
     snakemake --report report.html
-
-This report can, e.g., be forwarded to your collaborators.
-
-### Advanced
-
-The following recipe provides established best practices for running and extending this workflow in a reproducible way.
-
-1. [Fork](https://help.github.com/en/articles/fork-a-repo) the repo to a personal or lab account.
-2. [Clone](https://help.github.com/en/articles/cloning-a-repository) the fork to the desired working directory for the concrete project/run on your machine.
-3. [Create a new branch](https://git-scm.com/docs/gittutorial#_managing_branches) (the project-branch) within the clone and switch to it. The branch will contain any project-specific modifications (e.g. to configuration, but also to code).
-4. Modify the config, and any necessary sheets (and probably the workflow) as needed.
-5. Commit any changes and push the project-branch to your fork on github.
-6. Run the analysis.
-7. Optional: Merge back any valuable and generalizable changes to the [upstream repo](https://github.com/snakemake-workflows/hla-kir-imp) via a [**pull request**](https://help.github.com/en/articles/creating-a-pull-request). This would be **greatly appreciated**.
-8. Optional: Push results (plots/tables) to the remote branch on your fork.
-9. Optional: Create a self-contained workflow archive for publication along with the paper (snakemake --archive).
-10. Optional: Delete the local clone/workdir to free space.
-
-
-## Testing
-
-Tests cases are in the subfolder `.test`. They are automtically executed via continuous integration with Travis CI.

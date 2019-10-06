@@ -22,10 +22,6 @@ rule kirimp_ready:
         [expand('output/{project}/kirimp/02_shapeit/shapeit_v2/{project}.{region}.phased.{out_type}', project=project, out_type = ['haps', 'sample'], region=region)
          for project in config['project'] for region in config['project'][project]['shapeit']['regions']],
 
-rule kirimp_ready_v4:
-    input:
-        [expand('output/{project}/kirimp/02_shapeit/shapeit_v2/{project}.{region}.phased.{out_type}', project=project, out_type = ['haps', 'sample'], region=region)
-         for project in config['project'] for region in config['project'][project]['shapeit']['regions']],
 rule kirimp_panel:
     input:
     	"input/meta/kirimp/%s" % path.basename(config['KIRIMP_PANEL_URL'])
@@ -45,6 +41,7 @@ rule print_defaults:
 rule create_dag:
     output: "dags/dag.svg"
     shell: "snakemake --dag | dot -Tsvg > {output}"
+
 include: "rules/kirimp_panel.smk"
 include: "rules/liftover.smk"
 include: "rules/freq_encode_snps.smk"
