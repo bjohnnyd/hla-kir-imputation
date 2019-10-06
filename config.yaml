@@ -5,9 +5,9 @@
 #KIRIMP_PANEL_URL: "http://imp.science.unimelb.edu.au/kir/static/kirimp.uk1.snp.info.csv"
 #KIRIMP_GENMAP_URL: ""
 project:
-  taherne:
+  traherne:
     liftover:
-      plink: "/home/johnny/Projects/Personal/traherne/input/traherne/traherne.bed"
+      plink: "input/traherne/traherne.bed"
     # freq_encode_snps:
     # vcf: "output/taherne/liftover/04_hg19_vcf/taherne.hg18ToHg19.vcf.gz"
     # additional: "--outlier-threshold 0.1"

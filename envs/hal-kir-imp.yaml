@@ -1,0 +1,15 @@
+name: hka-kir-imp
+channels: 
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - snakemake=5.6.0
+  - jsonschema=3.0.2
+  - matplotlib=3.1.1
+  - cyvcf2=0.11.5
+  - plink=1.90b4
+  - ucsc-liftover=377
+  - bcftools=1.9
+  - shapeit4=4.0
+  - shapeit=2.r837
