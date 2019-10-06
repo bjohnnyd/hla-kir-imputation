@@ -17,12 +17,15 @@ singularity: "docker://continuumio/miniconda3"
 
 rule kirimp_ready:
     input:
- #       expand('output/{project}/kirimp/01_freq_encode_snps/{project}.vcf.gz', project=config['project'].keys()),
         [expand('output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.phased.{out_type}', project=project, out_type = ['haps', 'sample'], region=region)
          for project in config['project'] for region in config['project'][project]['shapeit']['regions']],
         [expand('output/{project}/kirimp/02_shapeit/shapeit_v2/{project}.{region}.phased.{out_type}', project=project, out_type = ['haps', 'sample'], region=region)
          for project in config['project'] for region in config['project'][project]['shapeit']['regions']],
 
+rule kirimp_ready_v4:
+    input:
+        [expand('output/{project}/kirimp/02_shapeit/shapeit_v2/{project}.{region}.phased.{out_type}', project=project, out_type = ['haps', 'sample'], region=region)
+         for project in config['project'] for region in config['project'][project]['shapeit']['regions']],
 rule kirimp_panel:
     input:
     	"input/meta/kirimp/%s" % path.basename(config['KIRIMP_PANEL_URL'])

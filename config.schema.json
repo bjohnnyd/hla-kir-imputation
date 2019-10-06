@@ -9,9 +9,9 @@
             "type": "string",
             "default": "http://imp.science.unimelb.edu.au/kir/static/kirimp.uk1.snp.info.csv"
         },
-        "KIRIMP_GENMAP_URL": {
+        "SHAPEIT_GENMAP_URL": {
             "type": "string",
-            "default": "ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/working/20110106_recombination_hotspots/HapmapII_GRCh37_RecombinationHotspots.tar.gz"
+            "default": "https://github.com/odelaneau/shapeit4/blob/master/maps/genetic_maps.b37.tar.gz?raw=true"
         },
         "BCFTOOLS_THREADS": {
             "type": "integer",
