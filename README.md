@@ -12,6 +12,18 @@ TODO:
 
 ## Usage
 
+### Workflow Overview
+
+The full workflow consists of creating datasets ready for imputation:
+
+![alt text](dags/dag.svg "Example Full Workflow")
+
+The steps can be summarized as:
+
+    1. Convert input PLINK bed files to reference b37
+    2. Encode REF/ALT alleles the same as the KIR*IMP reference panel
+    3. Phase the encoded VCF using shapeit4 and shapeit.
+
 ### Quickstart
 
 To run the pipeline edit `config.yaml` to point to your input PLINK bed file by placing the following yaml directives:
@@ -45,17 +57,6 @@ All output will produced inside the `output/<project name>` directory.
 
 Configure the workflow according to your needs via editing the file `config.yaml`. To see the list of default configurations settings run the command `snakemake print_defaults`.
 
-### Workflow Overview
-
-The full workflow consists of creating datasets ready for imputation:
-
-![alt text](dags/dag.svg "Example Full Workflow")
-
-The steps can be summarized as:
-
-1. Convert input PLINK bed files to reference b37
-2. Encode REF/ALT alleles the same as the KIR*IMP reference panel
-3. Phase the encoded VCF using shapeit4 and shapeit.
 
 ### Running Specific Parts or Running Workflow in Steps
 
