@@ -6,3 +6,4 @@ project:
   example:
     liftover:
       plink: "example/plink/example.bed"
+
