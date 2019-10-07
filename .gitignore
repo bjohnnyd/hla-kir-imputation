@@ -1,6 +1,8 @@
 *
 !example
 !example/*
+!example/dags
+!example/dags/*
 !schemas
 !schemas/*
 !scripts
