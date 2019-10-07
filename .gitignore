@@ -4,6 +4,10 @@
 !example/*
 !example/dags
 !example/dags/*
+!example/plink/
+!example/plink/*
+!example/vcf/
+!example/vcf/*
 !schemas
 !schemas/*
 !scripts
