@@ -1,0 +1,21 @@
+# snakemake --use-conda -npr -j 50 --cluster-config cluster.yaml --cluster "qsub -lwalltime={cluster.time} -lselect={cluster.nodes}:ncpus={cluster.cpus}:mem={cluster.memory} -N {cluster.name} -o {cluster.logs} -e {cluster.logs}"
+
+__default__:
+  time: "01:00:00",
+  nodes: 1,
+  cpus: 1,
+  memory: "1gb",
+  name: "{rule}.{wildcards}",
+  logs: "cluster_logs/{wildcards.project}/{rule}"
+shapeit:
+  time: "72:00:00",
+  cpus: "{threads}",
+  memory: "64gb"
+shapeit4:
+  time: "72:00:00",
+  cpus: "{threads}",
+  memory: "64gb"
+freq_encode_snps:
+  time: "00:01:00",
+  cpus: "{threads}",
+  memory: "12gb"

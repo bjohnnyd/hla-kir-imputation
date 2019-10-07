@@ -1,4 +1,5 @@
 *
+!cluster.yaml
 !example
 !example/*
 !example/dags
@@ -9,8 +10,7 @@
 !scripts/*
 !scripts/common
 !scripts/common/*
-scripts/.snakemake*
-!Snakefile
+scripts/.snakemake* !Snakefile
 !config.yaml
 !samples.tsv
 !resources
