@@ -193,7 +193,7 @@ class VCFSummary(object):
 
 def main(arguments=None):
     args = parse_arguments()
-    vcf = VCF(args["vcf_file"])
+    vcf = VCF(args["vcf_file"], threads=args["threads"])
     vcf.add_info_to_header(UPDATED)
     vcf.add_info_to_header(PANEL_FREQ_DIFF)
     vcf.add_info_to_header(MISSINGNES)
@@ -252,7 +252,7 @@ def main(arguments=None):
             if should_recode(variant, panel_variant):
                 swap_ref_alt(variant)
                 variant.INFO["UPD"] = 1
-                vcf_summary.updated +=1 
+                vcf_summary.updated += 1
                 status = "updated"
                 reason = "freqeuncy_unsynced"
             if (
@@ -575,6 +575,9 @@ def parse_arguments(arguments=None):
         help="Threshold to use to label variant frequency differences between alternate and panel frequencis that are significant",
         default=None,
         type=float,
+    )
+    optional.add_argument(
+        "-t", "--threads", help="Number of threads to use for compression", type=int
     )
     args = vars(parser.parse_args())
     if (

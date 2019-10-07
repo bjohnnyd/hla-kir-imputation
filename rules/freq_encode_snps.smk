@@ -20,7 +20,8 @@ rule freq_encode_snps:
     conda: "../envs/freq_encode_snps.yml"
     log: "output/{project}/kirimp/01_freq_encode_snps/{project}_log.toml"
     params: lambda wc: config['project'][wc.project]['freq_encode_snps']['additional']
+    threads: config['FREQ_ENCODE_SNPS_THREADS']
     shell: 
-        "scripts/frequency_encode_snps.py -v {input.vcf} "
+        "scripts/frequency_encode_snps.py -t {threads} -v {input.vcf} "
         "-r {input.panel} -o {output.vcf} {params} 2> {log} && "
         "bcftools index {output.vcf}"

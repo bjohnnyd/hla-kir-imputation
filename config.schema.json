@@ -25,6 +25,10 @@
             "type": "integer",
             "default": 4
         },
+        "FREQ_ENCODE_SNPS_THREADS": {
+            "type": "integer",
+            "default": 4
+        },
         "project": {
             "$ref": "#/definitions/project",
             "description": "settings for a specific run"
@@ -62,7 +66,7 @@
                                 "gmap": "input/meta/shapeit/kirimp.chr19.gmap.txt.gz",
                                 "pbwt": 8,
                                 "pbwt-modulo": 8,
-                                "regions": [ 19 ],
+                                "regions": [19],
                                 "states": 500,
                                 "min_missing": 0.25,
                                 "v2_additional": "",
