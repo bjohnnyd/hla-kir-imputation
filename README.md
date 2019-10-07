@@ -3,9 +3,6 @@
 [![Snakemake](https://img.shields.io/badge/snakemake-≥5.4.0-brightgreen.svg)](https://snakemake.bitbucket.io)
 [![Build Status](https://travis-ci.org/snakemake-workflows/hla-kir-imp.svg?branch=master)](https://travis-ci.org/snakemake-workflows/hla-kir-imp)
 
-
-TODO:
-
 ## Authors
 
 * Johnathan Debebe (@JohnnyBD)
@@ -16,7 +13,7 @@ TODO:
 
 The full workflow consists of creating datasets ready for imputation:
 
-![alt text](dags/dag.svg "Example Full Workflow")
+![alt text](example/dags/full_wokflow_dag.svg "Example Full Workflow")
 
 The steps can be summarized as:
 
@@ -66,6 +63,8 @@ To see the list of specific rules/steps that are possible run `snakemake --list-
 
 #### Example 1: Running Only Liftover
 
+![alt text](example/dags/liftover_wokflow_dag.svg "Example Liftover Workflow")
+
 It is possible to only use the workflow to perform liftover of PLINK bed files from specific reference to `b37`. This will produce a VCF file with the reference being `b37`.
 
 To perform only liftover with the same `config.yaml` from [Quickstart](#quickstart) run the command:
@@ -75,6 +74,8 @@ snakemake -j<number of parallel jobs> --use-conda liftover
 ```
 
 #### Example 2: Encode VCF Without Liftover or Perform Liftover and Encoding Without Phasing With SHAPEIT
+
+![alt text](example/dags/freq_encode_workflow_dag.svg "Example Frequency Encode VCF Workflow")
 
 If you have VCF file based on reference `b37` it is possible to only run encoding without liftover. To encode the VCF file using KIR*IMP reference panel edit `config.yaml`:
 
@@ -96,6 +97,8 @@ If the above command is executed with the `config.yaml` settings from [Quickstar
 
 
 #### Example 3: Run SHAPEIT After Checking VCF Statistics
+
+![alt text](example/dags/shapeit_wokflow_dag.svg "Example Frequency Encode VCF Workflow")
 
 To run SHAPEIT and prepare data for KIR*IMP using the file produced by running `snakemake -j<number of parallel jobs> --use-conda kirimp_encode` run the command:
 

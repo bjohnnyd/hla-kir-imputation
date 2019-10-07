@@ -2,12 +2,7 @@
 # In case of sample based data, it should be complemented by a samples.tsv file that contains
 # one row per sample. It can be parsed easily via pandas.
 
-#KIRIMP_PANEL_URL: "http://imp.science.unimelb.edu.au/kir/static/kirimp.uk1.snp.info.csv"
-#KIRIMP_GENMAP_URL: ""
 project:
-  traherne:
+  example:
     liftover:
-      plink: "input/traherne/traherne.bed"
-    # freq_encode_snps:
-    # vcf: "output/taherne/liftover/04_hg19_vcf/taherne.hg18ToHg19.vcf.gz"
-    # additional: "--outlier-threshold 0.1"
+      plink: "example/plink/example.bed"
