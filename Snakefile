@@ -14,6 +14,7 @@ validate(config, "config.schema.json")
 
 # Allow users to fix the underlying OS via singularity.
 singularity: "docker://continuumio/miniconda3"
+localrules: get_kirimp_panel,kirimp_panel,get_overchain,kirimp_encode,generate_kirimp_gmap
 
 rule kirimp_ready:
     input:

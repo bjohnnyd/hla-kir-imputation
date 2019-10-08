@@ -3,15 +3,18 @@ import argparse
 import re
 import sys
 import textwrap
+import matplotlib
 import numpy as np
 from os import path
 from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.patches import Patch
+
 from cyvcf2 import VCF, Writer
 
 plt.rcParams["figure.figsize"] = (18, 14)
+matplotlib.use('Agg')
 
 CHROMOSOME_19_ANNOTATION = {"ucsc": "chr19", "ensembl": "19", "genbank": "CM000681.2"}
 
