@@ -7,7 +7,6 @@ from snakemake.utils import validate
     # 1. Fix shapeit genetic map generator file 
     # 2. Fix shapeit config schema json
 
-
 configfile: "config.yaml"
 validate(config, "config.schema.json")
 #report: "report/workflow.rst"

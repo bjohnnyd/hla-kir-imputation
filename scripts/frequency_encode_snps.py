@@ -14,7 +14,7 @@ from matplotlib.patches import Patch
 from cyvcf2 import VCF, Writer
 
 plt.rcParams["figure.figsize"] = (18, 14)
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 
 CHROMOSOME_19_ANNOTATION = {"ucsc": "chr19", "ensembl": "19", "genbank": "CM000681.2"}
 
@@ -293,10 +293,10 @@ def main(arguments=None):
     w.close()
     vcf.close()
     plot_file = re.sub(r"(vcf|bcf)(\.gz)*$", "png", args["output"])
-
-    create_summary_plot(
-        vcf_summary, outfile=plot_file, threshold=args["outlier_threshold"]
-    )
+    if not vcf_summary.n_in_panel == 0:
+        create_summary_plot(
+            vcf_summary, outfile=plot_file, threshold=args["outlier_threshold"]
+        )
     print(vcf_summary, file=sys.stderr)
     print("n_reference_panel_size=%d" % len(panel.keys()), file=sys.stderr)
 
