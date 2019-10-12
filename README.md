@@ -1,11 +1,11 @@
-# Snakemake workflow: HLA and KIR Imputation from SNP
+# HLA and KIR Imputation from SNP
 
 [![Snakemake](https://img.shields.io/badge/snakemake-≥5.4.0-brightgreen.svg)](https://snakemake.bitbucket.io)
 [![Build Status](https://travis-ci.org/snakemake-workflows/hla-kir-imp.svg?branch=master)](https://travis-ci.org/snakemake-workflows/hla-kir-imp)
 
 ## Authors
 
-* Johnathan D. (@JohnnyBD)
+* Johnathan D. (@bjohnnyd)
 
 ## Usage
 
