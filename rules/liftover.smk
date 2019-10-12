@@ -78,10 +78,6 @@ rule create_vcf:
         """
 	plink --allow-extra-chr --allow-no-sex --real-ref-alleles --keep-allele-order --snps-only just-acgt --bfile {params.basein} --recode vcf --out {params.baseout} &> {log}
         bcftools view -U {output.tmp_vcf} | bcftools norm --threads {threads} --rm-dup snps | bcftools +fill-tags -Oz  -- -d  2> {log} > {output.vcf} 2>> {log}
-        bcftools index {output.vcf} &>> {log} 
+        bcftools index -f {output.vcf} &>> {log} 
         bcftools stats {output.vcf} > {output.stats} 2>> {log}
         """
-	#bcftools annotate --rename-chrs <(bcftools query -f "%CHROM\n" {output.tmp_vcf} | sed -E 's:(^[[:digit:]]+):chr\1:g') {output.tmp_vcf}
-        #bcftools view -U {output.tmp_vcf} | bcftools norm --threads {threads} --rm-dup snps | bcftools +fill-tags -Oz  -- -d  2> {log} > {output.vcf} 2>> {log}
-        #bcftools +fill-tags {output.tmp_vcf} -- -d  2> {log} | bcftools view -U | bcftools norm --threads {threads} --rm-dup snps -Oz > {output.vcf} 2>> {log}
-        #bcftools +fill-tags {output.tmp_vcf} -- -d  2> {log} | awk '/^#/ {{print}} !($1"_"$2 in a){{a[$1"_"$2]=$1"_"$2;print $0}}' | bcftools view -U -Oz > {output.vcf} 2>> {log}

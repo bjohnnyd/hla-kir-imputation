@@ -24,4 +24,4 @@ rule freq_encode_snps:
     shell: 
         "scripts/frequency_encode_snps.py -t {threads} -v {input.vcf} "
         "-r {input.panel} -o {output.vcf} {params} 2> {log} && "
-        "bcftools index {output.vcf}"
+        "bcftools index -f {output.vcf}"

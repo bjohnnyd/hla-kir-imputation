@@ -17,7 +17,7 @@ localrules: get_kirimp_panel,kirimp_panel,get_overchain,kirimp_encode,generate_k
 
 rule kirimp_ready:
     input:
-        [expand('output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.phased.{out_type}', project=project, out_type = ['haps', 'sample'], region=region)
+        [expand('output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.phased.{out_type}', project=project, out_type = ['hap', 'samples'], region=region)
          for project in config['project'] for region in config['project'][project]['shapeit']['regions']],
         [expand('output/{project}/kirimp/02_shapeit/shapeit_v2/{project}.{region}.phased.{out_type}', project=project, out_type = ['haps', 'sample'], region=region)
          for project in config['project'] for region in config['project'][project]['shapeit']['regions']],

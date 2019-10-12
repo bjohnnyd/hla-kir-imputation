@@ -6,7 +6,7 @@ from snakemake.remote.HTTP import RemoteProvider as HTTPRemoteProvider
 HTTP = HTTPRemoteProvider()
 
 rule generate_kirimp_gmap:
-    input: HTTP.remote(config['SHAPEIT_GENMAP_URL'], keep_local=False)
+    input: HTTP.remote(config['SHAPEIT_GENMAP_URL'], keep_local=False, allow_redirects=True)
     output: 'input/meta/shapeit/kirimp.chr19.gmap.txt.gz'
     log : 'logs/generate_kirimp_gmap/kirimp.chr19.gmap.log'
     shell: "cat {input} | tar xzfO - --wildcards 'chr19.b37.gmap.gz' 2> {log}  > {output}"
@@ -18,9 +18,9 @@ rule shapeit4:
     output:
         phased_vcf = 'output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.phased.vcf.gz',
         filtered_vcf = 'output/{project}/kirimp/02_shapeit/shapeit_v2/{project}.{region}.filtered.vcf.gz',
-        haps = 'output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.phased.haps',
-        sample = 'output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.phased.sample',
-        graph = 'output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.graph',
+        hap = 'output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.phased.hap',
+        sample = 'output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.phased.samples',
+        legend = temp('output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.phased.legend.gz'),
         log = 'output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.shapeit.log',
     conda: "../envs/shapeit.yml"
     log: "logs/shapeit/{project}/{project}.{region}.shapeit4.err"
@@ -29,14 +29,16 @@ rule shapeit4:
     	pbwt_modulo=lambda wc: config['project'][wc.project]['shapeit']['pbwt-modulo'],
     	additional=lambda wc: config['project'][wc.project]['shapeit']['v4_additional'],
         missing_threshold=lambda wc: config['project'][wc.project]['shapeit']['min_missing'],
+        out='output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.phased'
     threads: config['SHAPEIT_THREADS']
     shell: 
         """
-	    bcftools filter -r {wildcards.region} -Oz -e 'MISS > {params.missing_threshold}' {input.vcf} > {output.filtered_vcf}
-            bcftools index {output.filtered_vcf}
+            bcftools filter -r {wildcards.region} -Oz -e 'MISS > {params.missing_threshold}' {input.vcf} > {output.filtered_vcf}
+            bcftools index -f {output.filtered_vcf}
             shapeit4 --thread {threads} --input {output.filtered_vcf} --map {input.gmap} --output {output.phased_vcf} \
             --region {wildcards.region} --pbwt-depth {params.pbwt} --pbwt-modulo {params.pbwt_modulo} --log {output.log} {params.additional} 2> {log}
-            bcftools convert -hapsample {output.haps},{output.sample} {output.phased_vcf}
+            bcftools convert -hapsample {output.phased_vcf} -Ou -o {params.out}
+            gunzip {output.hap}.gz 
         """
 
 rule shapeit:
@@ -58,7 +60,7 @@ rule shapeit:
     threads: config['SHAPEIT_THREADS']
     shell: 
         "bcftools filter -r {wildcards.region} -Oz -e 'MISS > {params.missing_threshold}' {input.vcf} > {output.filtered_vcf} && "
-        "bcftools index {output.filtered_vcf} && "
+        "bcftools index -f {output.filtered_vcf} && "
         "shapeit --thread {threads} --input-vcf {output.filtered_vcf} -M {input.gmap} --states {params.states} "
         "-O {output.haps} {output.sample} --output-graph {output.graph} "
         "--output-log {output.log} {params.additional} 2> {log}"

@@ -37,4 +37,6 @@ scripts/.snakemake* !Snakefile
 !.test/input/plink/*
 !.test/input/vcf
 !.test/input/vcf/*
+!.test/scripts
+!.test/scripts/*
 !.travis.yml
