@@ -1,6 +1,6 @@
 # HLA and KIR Imputation from SNP
 
-[![Snakemake](https://img.shields.io/badge/snakemake-≥5.4.0-brightgreen.svg)](https://snakemake.bitbucket.io)
+[![Snakemake](https://img.shields.io/badge/snakemake-≥5.6.0-brightgreen.svg)](https://snakemake.bitbucket.io)
 [![Build Status](https://travis-ci.com/bjohnnyd/hla-kir-imputation.svg?token=HtTMf4MPanDvgoiT7zrD&branch=master)](https://travis-ci.com/bjohnnyd/hla-kir-imputation)
 
 ## Authors
