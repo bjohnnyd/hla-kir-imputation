@@ -5,5 +5,5 @@
 project:
   example:
     liftover:
-      plink: "example/plink/example.bed"
+      plink: "input/plink/example.bed"
 

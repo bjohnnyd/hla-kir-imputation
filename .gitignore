@@ -1,13 +1,7 @@
 *
+!docs
+!docs/*.png
 !cluster.yaml
-!example
-!example/*
-!example/dags
-!example/dags/*
-!example/plink/
-!example/plink/*
-!example/vcf/
-!example/vcf/*
 !schemas
 !schemas/*
 !scripts
@@ -29,10 +23,18 @@ scripts/.snakemake* !Snakefile
 !.gitignore
 !.gitattributes
 !.editorconfig
-!.travis.yml
-!.test
 !config.schema.json
 !protocol
 !protocol/*
 !workflow
 !workflow/*
+
+
+# required for testing
+!.test
+!.test/input/
+!.test/input/plink
+!.test/input/plink/*
+!.test/input/vcf
+!.test/input/vcf/*
+!.travis.yml
