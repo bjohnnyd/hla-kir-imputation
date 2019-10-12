@@ -5,7 +5,7 @@
 
 ## Authors
 
-* Johnathan D. (@bjohnnyd)
+* Johnathan D. ([@bjohnnyd](https://github.com/bjohnnyd))
 
 ## Usage
 
