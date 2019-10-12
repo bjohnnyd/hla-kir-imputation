@@ -5,7 +5,7 @@
 
 ## Authors
 
-* Johnathan Debebe (@JohnnyBD)
+* Johnathan D. (@JohnnyBD)
 
 ## Usage
 
