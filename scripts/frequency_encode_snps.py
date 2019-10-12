@@ -257,7 +257,7 @@ def main(arguments=None):
                 variant.INFO["UPD"] = 1
                 vcf_summary.updated += 1
                 status = "updated"
-                reason = "freqeuncy_unsynced"
+                reason = "frequency_unsynced"
             if (
                 should_flipstrand(variant, panel_variant)
                 and args["fix_complement_ref_alt"]

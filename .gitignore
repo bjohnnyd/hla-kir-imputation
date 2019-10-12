@@ -1,6 +1,6 @@
 *
 !docs
-!docs/*.png
+!docs/*.svg
 !cluster.yaml
 !schemas
 !schemas/*

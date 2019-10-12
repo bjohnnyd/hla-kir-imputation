@@ -10,6 +10,9 @@ install:
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda info -a
+  - conda config --add channels defaults
+  - conda config --add channels bioconda
+  - conda config --add channels conda-forge
   - conda create -q -n snakemake python=$TRAVIS_PYTHON_VERSION snakemake=5.4.0
   - conda activate snakemake
 script:
