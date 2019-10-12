@@ -1,4 +1,4 @@
-name: hka-kir-imp
+name: hla-kir-imp
 channels: 
   - bioconda
   - conda-forge
@@ -13,3 +13,6 @@ dependencies:
   - bcftools=1.9
   - shapeit4=4.0
   - shapeit=2.r837
+  - pip
+  - pip:
+    - matplotlib
