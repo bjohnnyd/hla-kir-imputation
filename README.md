@@ -4,8 +4,20 @@
 [![Build Status](https://travis-ci.com/bjohnnyd/hla-kir-imputation.svg?token=HtTMf4MPanDvgoiT7zrD&branch=master)](https://travis-ci.com/bjohnnyd/hla-kir-imputation)
 
 ## Authors
-
 * Johnathan D. ([@bjohnnyd](https://github.com/bjohnnyd))
+
+# Table of Contents
+1. [Usage](#usage)
+    1. [Workflow Overview](#workflow-overview)
+    2. [Quickstart](#quickstart)
+    3. [Running Specific Parts or Running Workflow in Steps](#running-specific-parts-or-running-workflow-in-steps)
+        1. [Example 1: Running Only Liftover](#example-1:-running-only-liftover)
+        2. [Example 2: Encode VCF Without Liftover or Perform Liftover and Encoding Without Phasing With SHAPEIT](#example-2:-encode-vcf-without-liftover-or-perform-liftover-and-encoding-without-phasing-with-shapeit)
+        3. [Example 3: Run SHAPEIT After Checking VCF Statistics](#example-3:-run-shapeit-after-checking-vcf-statistics)
+    4. [Additional and Default Parameters](#additional-and-default-parameters)
+    5. [Workflow Running Options](#workflow-running-options)
+    6. [Investigate Results](#investigate-results)
+2. [Standalone Script](#standalone-script)
 
 ## Usage
 
@@ -170,8 +182,60 @@ If you not only want to fix the software stack but also the underlying OS, use
 in combination with any of the modes above.
 See the [Snakemake documentation](https://snakemake.readthedocs.io/en/stable/executable.html) for further details.
 
-# Step 4: Investigate results
+### Investigate results
 
 After successful execution, you can create a self-contained interactive HTML report with all results via:
 
     snakemake --report report.html
+
+## Standalone Script
+
+The workflow includes a standalone script
+
+    scripts/frequency_encode_snps.py
+
+which can be used to encode a VCF file to a reference panel of variants.  To setup the environment for the script create the environment:
+
+    conda env create -f envs/freq_encode_snps.yml
+
+then activate the environment with
+
+    conda activate freq_encode_snps
+
+The parameters to run the standalone script are:
+
+```
+usage: frequency_encode_snps.py [-h] -v VCF_FILE -r REFERENCE_PANEL
+                                [-rt {kirimp,custom}] [--separator SEPARATOR]
+                                -o OUTPUT [-chr [CHROMOSOMES]]
+                                [--chromosome-annotation {ucsc,ensembl,genbank}]
+                                [-a] [-c] [-min MIN_AMBIGIOUS_THRESHOLD]
+                                [-max MAX_AMBIGIOUS_THRESHOLD]
+                                [--outlier-threshold OUTLIER_THRESHOLD]
+                                [-t THREADS]
+```
+
+For usage with KIR*IMP the VCF has to be with `hg18/b37` reference.
+
+The script in addition to encoding the VCF file will produce a diagnosis plot (same name as output vcf file but with `.png` extension) as well as a [TOML](https://github.com/toml-lang/toml) file containing all the metadata of the encoding. The metadata TOML can be read into R using [configr](https://cran.r-project.org/web/packages/configr/vignettes/configr.html)
+
+```r
+require(configr)
+read.config(file = "metadata.toml")
+```
+
+or into Python using
+
+```python
+import toml
+toml.load("metadata.toml")
+```
+
+the resulting vcf will contain statistics from the encoding inside the INFO fields:
+
+```
+##INFO=<ID=UPD,Number=A,Type=Flag,Description="REF and ALT updated based on reference panel frequency">
+##INFO=<ID=PFD,Number=A,Type=Float,Description="Alternate frequency difference to reference panel frequency">
+##INFO=<ID=MISS,Number=A,Type=Float,Description="Missing Genotype Frequency">
+##INFO=<ID=MAF,Number=A,Type=Float,Description="Minor Allele Frequency">
+```

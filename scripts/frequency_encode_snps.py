@@ -32,13 +32,6 @@ UPDATED = {
     "Number": "A",
 }
 
-PANEL_FREQ_DIF = {
-    "ID": "PFD",
-    "Description": "Alternate frequency difference to reference panel frequency",
-    "Type": "Float",
-    "Number": "A",
-}
-
 PANEL_FREQ_DIFF = {
     "ID": "PFD",
     "Description": "Alternate frequency difference to reference panel frequency",
@@ -60,6 +53,12 @@ MAF = {
     "Number": "A",
 }
 
+AF = {
+    "ID": "AF",
+    "Description": "Alternate Allel Frequency",
+    "Type": "Float",
+    "Number": "A",
+}
 toml_header = """
 [encoder_settings]
 outlier_threshold=%s
@@ -201,8 +200,10 @@ def main(arguments=None):
     vcf.add_info_to_header(PANEL_FREQ_DIFF)
     vcf.add_info_to_header(MISSINGNES)
     vcf.add_info_to_header(MAF)
-
+    if not vcf.contains("AF"):
+        vcf.add_info_to_header(AF)
     w = Writer(args["output"], vcf)
+
     panel = generate_panel_data(
         panel_file=args["reference_panel"],
         chr=args["chromosomes"],
@@ -231,6 +232,8 @@ def main(arguments=None):
         reason = "None"
         panel_variant_freq = None
         variant_id_end = str(variant.CHROM) + "_" + str(variant.end)
+        if not variant.INFO.get("AF"):
+            variant.INFO["AF"] = variant.aaf
         if variant_id_end in panel:
             variant.INFO["UPD"] = 0
             panel_variant = panel[variant_id_end]
