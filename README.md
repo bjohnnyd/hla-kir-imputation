@@ -11,9 +11,9 @@
     1. [Workflow Overview](#workflow-overview)
     2. [Quickstart](#quickstart)
     3. [Running Specific Parts or Running Workflow in Steps](#running-specific-parts-or-running-workflow-in-steps)
-        1. [Example 1: Running Only Liftover](#example-1:-running-only-liftover)
-        2. [Example 2: Encode VCF Without Liftover or Perform Liftover and Encoding Without Phasing With SHAPEIT](#example-2:-encode-vcf-without-liftover-or-perform-liftover-and-encoding-without-phasing-with-shapeit)
-        3. [Example 3: Run SHAPEIT After Checking VCF Statistics](#example-3:-run-shapeit-after-checking-vcf-statistics)
+        1. [Running Only Liftover](#running-only-liftover)
+        2. [Encode VCF Without Liftover or Perform Liftover and Encoding Without Phasing With SHAPEIT](#encode-vcf-without-liftover-or-perform-liftover-and-encoding-without-phasing-with-shapeit)
+        3. [Run SHAPEIT After Checking VCF Statistics](#run-shapeit-after-checking-vcf-statistics)
     4. [Additional and Default Parameters](#additional-and-default-parameters)
     5. [Workflow Running Options](#workflow-running-options)
     6. [Investigate Results](#investigate-results)
@@ -73,7 +73,7 @@ The workflow can be ran from a specific part. In addition, the workflow can be r
 
 To see the list of specific rules/steps that are possible run `snakemake --list-target-rules`.  Each of the target rules listed can be run with the command `snakemake -j<number of parallel jobs> [OPTIONS] <target rule name>`.
 
-#### Example 1: Running Only Liftover
+#### Running Only Liftover
 
 ![alt text](docs/liftover_wokflow_dag.svg "Example Liftover Workflow")
 
@@ -85,7 +85,7 @@ To perform only liftover with the same `config.yaml` from [Quickstart](#quicksta
 snakemake -j<number of parallel jobs> --use-conda liftover
 ```
 
-#### Example 2: Encode VCF Without Liftover or Perform Liftover and Encoding Without Phasing With SHAPEIT
+#### Encode VCF Without Liftover or Perform Liftover and Encoding Without Phasing With SHAPEIT
 
 ![alt text](docs/freq_encode_workflow_dag.svg "Example Frequency Encode VCF Workflow")
 
@@ -108,7 +108,7 @@ If the above command is executed with the `config.yaml` settings from [Quickstar
 
 
 
-#### Example 3: Run SHAPEIT After Checking VCF Statistics
+#### Run SHAPEIT After Checking VCF Statistics
 
 ![alt text](docs/shapeit_wokflow_dag.svg "Example Frequency Encode VCF Workflow")
 
