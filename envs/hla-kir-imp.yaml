@@ -4,9 +4,8 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - snakemake=5.6.0
+  - snakemake=5.7.0
   - jsonschema=3.0.2
-  - matplotlib=3.1.1
   - cyvcf2=0.11.5
   - plink=1.90b4
   - ucsc-liftover=377
@@ -15,4 +14,4 @@ dependencies:
   - shapeit=2.r837
   - pip
   - pip:
-    - matplotlib
+    - matplotlib==3.1.1
