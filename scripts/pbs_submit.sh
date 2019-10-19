@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-#properties = {properties}
-#$ -lwalltime={cluster.time}
+#properties = {rule}
+#$ -lwalltime={properties["cluster"]["time"]}
 #$ -lselect={cluster.nodes}:ncpus={cluster.cpus}:mem={cluster.mem}
 #$ -N {cluster.name}
 #$ -e {cluster.logs}
