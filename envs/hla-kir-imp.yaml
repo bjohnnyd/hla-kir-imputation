@@ -12,6 +12,6 @@ dependencies:
   - bcftools=1.9
   - shapeit4=4.0
   - shapeit=2.r837
-  - pip
-  - pip:
-    - matplotlib==3.1.1
+#  - pip
+#  - pip:
+#    - matplotlib==3.1.1
