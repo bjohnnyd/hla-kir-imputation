@@ -4,16 +4,16 @@ __default__:
   time: "00:30:00"
   nodes: 1
   cpus: 1
-  memory: "10gb"
+  mem: "10gb"
   name: "{rule}.{wildcards}"
   logs: "cluster_logs"
 shapeit:
   time: "24:00:00"
   cpus: "{threads}"
-  memory: "32gb"
+  mem: "32gb"
 shapeit4:
   time: "24:00:00"
   cpus: "{threads}"
-  memory: "32gb"
+  mem: "32gb"
 freq_encode_snps:
   cpus: "{threads}"

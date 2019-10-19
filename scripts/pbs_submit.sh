@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-#$ -cwd
-#$ -V
-
-python -c "import cyvcf2" 2> /dev/null || pip install cyvcf2==0.11.5
-python -c "import matplotlib"  2> /dev/null || pip install matplotlib==3.1.1
-
+#properties = {properties}
+#$ -lwalltime={cluster.time}
+#$ -lselect={cluster.nodes}:ncpus={cluster.cpus}:mem={cluster.mem}
+#$ -N {cluster.name}
+#$ -e {cluster.logs}
+#$ -o {cluster.logs}
 {exec_job}
