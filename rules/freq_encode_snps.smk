@@ -12,7 +12,6 @@ rule freq_encode_snps:
     input: 
         panel = "input/meta/kirimp/%s" % path.basename(config['KIRIMP_PANEL_URL']),
         vcf = generate_vcf_input,
-        # vcf = lambda wc: config['project'][wc.project]['freq_encode_snps']['vcf'],
     output:
         vcf = 'output/{project}/kirimp/01_freq_encode_snps/{project}.vcf.gz',
         index = 'output/{project}/kirimp/01_freq_encode_snps/{project}.vcf.gz.csi',
