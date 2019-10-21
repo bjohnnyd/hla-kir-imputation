@@ -39,7 +39,7 @@ rule shapeit4:
             bcftools index -f {output.filtered_vcf} 2>> {log.bcftools}
             shapeit4 --thread {threads} --input {output.filtered_vcf} --map {input.gmap} --output {output.phased_vcf} \
             --region {wildcards.region} --pbwt-depth {params.pbwt} --pbwt-modulo {params.pbwt_modulo} --log {output.log} {params.additional} 2> {log.shapeit4}
-            bcftools convert -hapsample {output.phased_vcf} -Ou -o {params.out} 2>> {log.bcftools}
+            bcftools convert --hapsample {params.out} {output.phased_vcf} 2>> {log.bcftools}
             gunzip {output.hap}.gz 
         """
 

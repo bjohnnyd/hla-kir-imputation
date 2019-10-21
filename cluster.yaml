@@ -1,4 +1,4 @@
-# snakemake --use-conda -npr -j 20 --cluster-config cluster.yaml --cluster "qsub -lwalltime={cluster.time} -lselect={cluster.nodes}:ncpus={cluster.cpus}:mem={cluster.memory} -N {cluster.name} -o {cluster.logs} -e {cluster.logs}"
+# snakemake --use-conda -npr -j 20 --cluster-config cluster.yaml --cluster "qsub -lwalltime={cluster.time} -lselect={cluster.nodes}:ncpus={cluster.cpus}:mem={cluster.mem} -N {cluster.name} -o {cluster.logs} -e {cluster.logs}"
 
 __default__:
   time: "00:30:00"

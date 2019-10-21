@@ -1,4 +1,3 @@
-#!python
 #!/usr/bin/env python3
 
 import os
@@ -13,12 +12,12 @@ job_properties = read_job_properties(jobscript)
 qtime = job_properties["cluster"]["time"]
 qnodes = job_properties["cluster"]["nodes"]
 qcpus = job_properties["cluster"]["cpus"]
+qmem = job_properties["cluster"]["mem"]
 qname = job_properties["cluster"]["name"]
 qlogs = job_properties["cluster"]["logs"]
 
 os.system(
     sformat(
-        "qsub -lwalltime={qtime} -lselect={qnodes}:ncpus={qcpus}:mem={qmem} -N {qname} -oe {qlogs} {jobscript}"
+        "qsub -lwalltime={qtime} -lselect={qnodes}:ncpus={qcpus}:mem={qmem} -N {qname} -o {qlogs} -e {jobscript}"
     )
 )
-
