@@ -303,7 +303,6 @@ def main(arguments=None):
     print(vcf_summary, file=sys.stderr)
     print("n_reference_panel_size=%d" % len(panel.keys()), file=sys.stderr)
 
-
 def print_variant_toml(
     variant, panel_variant_freq, status, reason, variant_toml=variant_toml
 ):
@@ -344,13 +343,13 @@ def flipstrand(variant, COMPLEMENT=COMPLEMENT):
 
 
 def should_recode(variant, panel_variant):
-    panel_nucleotides = [panel_variant["A0"], panel_variant["A1"]]
-    variant_nucleotides = variant.ALT[:]
-    variant_nucleotides.extend(variant.REF)
+    variant_alt = variant.ALT[:][0]
     frequency_synced = (
         panel_variant["freq"] > 0.5 and variant.INFO.get("AF") > 0.5
     ) or (panel_variant["freq"] < 0.5 and variant.INFO.get("AF") < 0.5)
-    nucleotides_synced = all(nuc in variant_nucleotides for nuc in panel_nucleotides)
+    nucleotides_synced = (
+        variant.REF == panel_variant["A0"] and variant_alt == panel_variant["A1"]
+    )
     return not (frequency_synced and nucleotides_synced)
 
 
