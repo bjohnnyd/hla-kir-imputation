@@ -260,12 +260,12 @@ def main(arguments=None):
                 variant.INFO["UPD"] = 1
                 vcf_summary.updated += 1
                 status = "updated"
-                reason = "frequency_unsynced"
+                reason = "ref_alt_swapped"
             if (
                 should_flipstrand(variant, panel_variant)
                 and args["fix_complement_ref_alt"]
             ):
-                flipstrand(variant)
+                flipstrand(variant, panel_variant["freq"])
                 variant.INFO["UPD"] = 1
                 vcf_summary.flipped += 1
                 status = "strand_flipped"
@@ -303,6 +303,7 @@ def main(arguments=None):
     print(vcf_summary, file=sys.stderr)
     print("n_reference_panel_size=%d" % len(panel.keys()), file=sys.stderr)
 
+
 def print_variant_toml(
     variant, panel_variant_freq, status, reason, variant_toml=variant_toml
 ):
@@ -336,27 +337,35 @@ def swap_ref_alt(variant):
     variant.INFO["AF"] = updated_frequency
 
 
-def flipstrand(variant, COMPLEMENT=COMPLEMENT):
+def flipstrand(variant, panel_freq, COMPLEMENT=COMPLEMENT):
     variant.REF = COMPLEMENT[variant.REF]
-    variant.ALT = COMPLEMENT[variant.ALT]
-    swap_ref_alt(variant)
+    variant.ALT = COMPLEMENT[variant.ALT[0]]
+    frequency_synced = (panel_freq > 0.5 and variant.INFO.get("AF") > 0.5) or (
+        panel_freq < 0.5 and variant.INFO.get("AF") < 0.5
+    )
+    if not frequency_synced:
+        swap_ref_alt(variant)
 
 
 def should_recode(variant, panel_variant):
-    variant_alt = variant.ALT[:][0]
     frequency_synced = (
         panel_variant["freq"] > 0.5 and variant.INFO.get("AF") > 0.5
     ) or (panel_variant["freq"] < 0.5 and variant.INFO.get("AF") < 0.5)
     nucleotides_synced = (
-        variant.REF == panel_variant["A0"] and variant_alt == panel_variant["A1"]
+        variant.REF == panel_variant["A0"] and variant.ALT[0] == panel_variant["A1"]
     )
-    return not (frequency_synced and nucleotides_synced)
+    return not nucleotides_synced and not frequency_synced
 
 
 def should_flipstrand(variant, panel_variant, COMPLEMENT=COMPLEMENT):
-    unsynced = should_recode(variant, panel_variant)
-    is_alt_complement = COMPLEMENT[variant.REF] == variant.ALT
-    return unsynced and is_alt_complement
+    nucleotides_synced = (
+        variant.REF == panel_variant["A0"] and variant.ALT[0] == panel_variant["A1"]
+    )
+    frequency_synced = (
+        panel_variant["freq"] > 0.5 and variant.INFO.get("AF") > 0.5
+    ) or (panel_variant["freq"] < 0.5 and variant.INFO.get("AF") < 0.5)
+    alt_is_complement = COMPLEMENT[variant.REF] == variant.ALT[0]
+    return (not nucleotides_synced or not frequency_synced) and alt_is_complement
 
 
 def create_summary_plot(v_summary, outfile, threshold=None):
