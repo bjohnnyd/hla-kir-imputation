@@ -6,6 +6,6 @@ project:
   example:
     liftover:
       plink: ".test/input/plink/example.bed"
-  traherne:
-    liftover:
-      plink: "input/traherne/traherne.bed"
+  #traherne:
+    #liftover:
+      #plink: "input/traherne/traherne.bed"

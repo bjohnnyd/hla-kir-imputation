@@ -19,8 +19,7 @@ rule shapeit4:
         phased_vcf = 'output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.phased.vcf.gz',
         filtered_vcf = 'output/{project}/kirimp/02_shapeit/shapeit_v2/{project}.{region}.filtered.vcf.gz',
         hap = 'output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.phased.hap',
-        sample = 'output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.phased.samples',
-        legend = temp('output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.phased.legend.gz'),
+        sample = 'output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.phased.sample',
         log = 'output/{project}/kirimp/02_shapeit/shapeit_v4/{project}.{region}.shapeit.log',
     conda: "../envs/shapeit.yml"
     log:
