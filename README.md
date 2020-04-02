@@ -4,7 +4,7 @@
 [![Build Status](https://travis-ci.com/bjohnnyd/hla-kir-imputation.svg?token=HtTMf4MPanDvgoiT7zrD&branch=master)](https://travis-ci.com/bjohnnyd/hla-kir-imputation)
 
 ## Authors
-* Johnathan D. ([@bjohnnyd](https://github.com/bjohnnyd))
+* Bisrat Johnathan Debebe ([@bjohnnyd](https://github.com/bjohnnyd))
 
 # Table of Contents
 1. [Usage](#usage)
