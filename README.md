@@ -3,7 +3,7 @@ N.B: As of 21st of February, 2020 `shapeit=v2.r837` has been removed from the bi
 # HLA and KIR Imputation from SNP
 
 [![Snakemake](https://img.shields.io/badge/snakemake-≥5.6.0-brightgreen.svg)](https://snakemake.bitbucket.io)
-[![Build Status](https://travis-ci.com/bjohnnyd/hla-kir-imputation.svg?token=HtTMf4MPanDvgoiT7zrD&branch=master)](https://travis-ci.com/bjohnnyd/hla-kir-imputation)
+[![Build Status](https://travis-ci.com/bjohnnyd/hla-kir-imputation.svg)](https://travis-ci.com/bjohnnyd/hla-kir-imputation)
 
 ## Authors
 * Bisrat Johnathan Debebe ([@bjohnnyd](https://github.com/bjohnnyd))
